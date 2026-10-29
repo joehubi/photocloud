@@ -27,6 +27,7 @@ public static class UploadLogReader
         return result.Count > count ? result.GetRange(result.Count - count, count) : result;
     }
 
+    /// <summary>Parst eine Logzeile; liefert null, wenn das Format nicht passt.</summary>
     internal static LogEntry? Parse(string line)
     {
         var parts = line.Split(" | ", 6);

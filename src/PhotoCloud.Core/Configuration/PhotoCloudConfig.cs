@@ -24,6 +24,7 @@ public sealed class PhotoCloudConfig
 
     public UnittestSettings Unittest { get; set; } = new();
 
+    /// <summary>Liest die JSON-Konfiguration (Kommentare und nachgestellte Kommas erlaubt).</summary>
     public static PhotoCloudConfig Load(string path)
     {
         using var stream = File.OpenRead(path);

@@ -12,6 +12,7 @@ public sealed class CloudStorage
     private readonly HashSet<string> _allowedExtensions;
     private readonly long _maxBytes;
 
+    /// <summary>Legt Wurzelpfad, erlaubte Ordner und Endungen sowie das Größenlimit (MB) fest.</summary>
     public CloudStorage(string rootPath, IEnumerable<string> folders, IEnumerable<string> allowedExtensions, int maxFileSizeMb)
     {
         _rootPath = rootPath;
@@ -22,6 +23,7 @@ public sealed class CloudStorage
 
     public IReadOnlyList<string> Folders => _folders;
 
+    /// <summary>Prüft Ordner, Name und Endung und streamt die Datei ins Ziel; bei Fehlern wird die Teildatei gelöscht.</summary>
     public async Task<SaveResult> SaveAsync(string folder, string fileName, Stream content, CancellationToken cancellationToken = default)
     {
         var configuredFolder = _folders.FirstOrDefault(f => string.Equals(f, folder, StringComparison.OrdinalIgnoreCase))
@@ -70,6 +72,7 @@ public sealed class CloudStorage
     }
 
     // CreateNew is atomic, so concurrent uploads of the same name never overwrite each other.
+    /// <summary>Legt die Datei an; bei vorhandenem Namen wird ein Zähler angehängt ("name (1).ext").</summary>
     private static (FileStream Stream, string Path) CreateUniqueFile(string folderPath, string fileName)
     {
         var baseName = Path.GetFileNameWithoutExtension(fileName);
@@ -90,6 +93,7 @@ public sealed class CloudStorage
         }
     }
 
+    /// <summary>Reduziert den Namen auf den reinen Dateinamen und lehnt ungültige Namen ab.</summary>
     private static string SanitizeFileName(string fileName)
     {
         var name = fileName.Replace('/', '\\');
@@ -102,6 +106,7 @@ public sealed class CloudStorage
         return name;
     }
 
+    /// <summary>Löscht eine Datei und ignoriert dabei IO-Fehler.</summary>
     private static void TryDelete(string path)
     {
         try

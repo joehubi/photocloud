@@ -19,6 +19,7 @@ public static class PhotoCloudWebHost
 {
     private const long MultipartOverheadBytes = 1024 * 1024;
 
+    /// <summary>Baut den Server (Kestrel auf IPv4, IP-Whitelist, Endpunkte); gestartet wird er vom Aufrufer.</summary>
     public static WebApplication Build(PhotoCloudConfig config, CloudStorage storage, Action<LogEntry> log)
     {
         var builder = WebApplication.CreateBuilder();
@@ -63,6 +64,7 @@ public static class PhotoCloudWebHost
         return app;
     }
 
+    /// <summary>Liest die multipart-Anfrage als Stream und speichert jede Datei; antwortet mit einem Ergebnis pro Datei.</summary>
     private static async Task<IResult> HandleUploadAsync(HttpContext context, CloudStorage storage, Action<LogEntry> log)
     {
         var request = context.Request;
@@ -105,6 +107,7 @@ public static class PhotoCloudWebHost
         return Results.Json(new { files = results });
     }
 
+    /// <summary>Speichert eine Datei über CloudStorage, schreibt einen Info- oder Error-Logeintrag und liefert das Ergebnis für die Antwort.</summary>
     private static async Task<object> SaveOneAsync(CloudStorage storage, Action<LogEntry> log, string folder, string fileName, Stream body, CancellationToken cancellation)
     {
         try
@@ -126,6 +129,7 @@ public static class PhotoCloudWebHost
         }
     }
 
+    /// <summary>Liest eine eingebettete Ressource dieser Assembly als Bytes.</summary>
     private static byte[] LoadResource(string name)
     {
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name)
@@ -135,6 +139,7 @@ public static class PhotoCloudWebHost
         return memory.ToArray();
     }
 
+    /// <summary>Lädt die Webmaske und setzt Dateityp-Filter und Größenlimit aus der Config ein.</summary>
     private static string LoadIndexHtml(PhotoCloudConfig config)
     {
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("index.html")

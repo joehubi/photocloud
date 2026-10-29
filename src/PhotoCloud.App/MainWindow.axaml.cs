@@ -16,6 +16,7 @@ using PhotoCloud.Web;
 
 namespace PhotoCloud.App;
 
+/// <summary>Eine Zeile der Log-Liste mit Icon, Farbe und fertigem Text.</summary>
 public sealed record LogRow(string Icon, IBrush Brush, string Text, LogLevel Level);
 
 public partial class MainWindow : Window
@@ -28,6 +29,7 @@ public partial class MainWindow : Window
     private WebApplication? _server;
     private DispatcherTimer? _nasTimer;
 
+    /// <summary>Verbindet Filter, Start- und Schließen-Ereignisse; die eigentliche Initialisierung folgt in StartAsync.</summary>
     public MainWindow()
     {
         InitializeComponent();
@@ -43,6 +45,7 @@ public partial class MainWindow : Window
         };
     }
 
+    /// <summary>Einmaliger Start: Config und Log laden, Cloud prüfen, Web-Server starten, Cloud-Timer anlegen.</summary>
     private async Task StartAsync()
     {
         var configPath = PhotoCloudConfig.Locate();
@@ -88,6 +91,7 @@ public partial class MainWindow : Window
         _nasTimer.Start();
     }
 
+    /// <summary>Verbindet sich mit der Cloud und prüft, ob die Freigabe erreichbar ist; Fehler zählen als offline.</summary>
     private bool CheckNas()
     {
         try
@@ -101,6 +105,7 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Zeigt Server-URL, Cloud-Status und die Smartphone-Adresse(n) in der Statuszeile.</summary>
     private void ShowStatus(bool nasOnline)
     {
         var port = _config!.Server.Port;
@@ -110,6 +115,7 @@ public partial class MainWindow : Window
         StatusText.Text = $"Server läuft: http://127.0.0.1:{port}   |   {nas} ({_config.CloudSettings.SharePath}){Environment.NewLine}Adresse für das Smartphone: {phone}";
     }
 
+    /// <summary>IPv4-Adressen aller aktiven Adapter mit Standardgateway (ohne Loopback und Tunnel).</summary>
     private static IEnumerable<string> LocalIPv4Addresses() => NetworkInterface.GetAllNetworkInterfaces()
         .Where(n => n.OperationalStatus == OperationalStatus.Up
             && n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)
@@ -118,6 +124,7 @@ public partial class MainWindow : Window
         .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork)
         .Select(a => a.Address.ToString());
 
+    /// <summary>Log-Callback des Web-Servers: schreibt in die Logdatei und aktualisiert die Liste auf dem UI-Thread.</summary>
     private void OnLog(LogEntry entry)
     {
         _logWriter?.Write(entry);
@@ -128,6 +135,7 @@ public partial class MainWindow : Window
         });
     }
 
+    /// <summary>Baut die Log-Liste nach aktuellem Filter neu auf (neueste Einträge oben).</summary>
     private void RefreshList()
     {
         var filter = LevelFilter.SelectedIndex;
@@ -138,6 +146,7 @@ public partial class MainWindow : Window
             .ToList();
     }
 
+    /// <summary>Wandelt einen Logeintrag in eine Anzeigezeile mit Icon und Farbe je Level.</summary>
     private static LogRow ToRow(LogEntry e)
     {
         var isError = e.Level == LogLevel.Error;
@@ -147,6 +156,7 @@ public partial class MainWindow : Window
         return new LogRow(isError ? "✖" : "ℹ", isError ? Brushes.Firebrick : Brushes.SteelBlue, text, e.Level);
     }
 
+    /// <summary>Formatiert die Config schreibgeschützt für die Anzeige; das Passwort bleibt maskiert.</summary>
     private static string FormatSettings(PhotoCloudConfig c, string path) => string.Join(Environment.NewLine,
         $"Konfiguration:   {path}",
         $"Cloud:           {c.CloudSettings.SharePath}  (Benutzer: {c.CloudSettings.User}, Passwort: ********)",

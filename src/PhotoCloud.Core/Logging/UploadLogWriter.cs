@@ -15,6 +15,7 @@ public sealed class UploadLogWriter(string logDirectory)
 
     public string LogDirectory { get; } = logDirectory;
 
+    /// <summary>Hängt einen Eintrag thread-sicher an die Tagesdatei an.</summary>
     public void Write(LogEntry entry)
     {
         var path = Path.Combine(LogDirectory, $"upload-{entry.Timestamp:yyyy-MM-dd}.log");
