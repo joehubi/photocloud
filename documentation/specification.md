@@ -10,7 +10,7 @@ Fotos vom Smartphone per WLAN über eine Browsermaske (Chrome) direkt in einen v
 Smartphone (Chrome) --WLAN--> Windows-PC (ASP.NET Core / Kestrel) --SMB--> WD My Cloud EX2 Ultra
 ```
 - Die Anwendung läuft auf dem Windows-PC (kein Raspberry Pi, keine Software auf dem Router (Vodafone Box) oder dem NAS).
-- Technologie: C#, .NET 8, ASP.NET Core Minimal API, statisches HTML/JS-Frontend.
+- Technologie: C#, .NET 10, ASP.NET Core Minimal API, statisches HTML/JS-Frontend.
 - Auf dem PC gibt es zusätzlich eine kleine Desktop-GUI auf Basis von Avalonia UI (siehe Abschnitt 7a) zur Anzeige der Konfiguration und der Upload-Logs.
 
 ## 3. Konfiguration
@@ -48,6 +48,7 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
 - Der Server lauscht ausschließlich auf IPv4 (`0.0.0.0:<Server.Port>`). IPv6-Adressen sind nicht vorgesehen und stehen nicht in der Whitelist.
 
 - `Cloud-Settings.Host`, `Port`, `Share`, `User`, `Password`: Anmeldedaten für den SMB-Zugriff auf die WD My Cloud (Standardport SMB: 445). Host kann ein Rechnername oder eine IP-Adresse sein. Die Anwendung baut daraus den UNC-Pfad (`\\Host\Share`, hier `\\hubercloud\hubercloud`, wie im Windows-Explorer) und authentifiziert sich damit.
+- `User` und `Password` sollten für einen zuverlässigen Start explizit mit den NAS-Zugangsdaten befüllt sein. Leere Werte funktionieren nur, wenn Windows dem aktuellen Benutzer bereits Zugriff auf das Share geben kann (z. B. über eine bestehende Explorer-Verbindung oder gespeicherte Windows-Anmeldedaten). Die Beispielwerte in `config.example.json` sind Platzhalter.
 - `Cloud-Storage.TargetFolders`: exakte Liste der Ordner (relativ zum Share), in die hochgeladen werden darf. Die Namen sind nur Beispiele. Regeln:
   - Es wird ausschließlich in genau diese Ordner geschrieben. Es gibt keine Navigation in Unterordner und kein Durchsuchen der Cloud.
   - Die Anwendung legt keine Ordner an. Ein konfigurierter Ordner, der nicht existiert, wird als `Error` geloggt und in der Webmaske als nicht verfügbar markiert.
@@ -106,7 +107,7 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
 Hinweis: Eine Webseite kann nicht selbst die gesamte Galerie als Miniaturansicht aufbauen (Browser-Datenschutz). Die Galerieansicht mit Miniaturen liefert der System-Picker des Smartphones.
 
 ## 7a. Windows-GUI (Desktop)
-Kleine GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technologie: Avalonia UI (.NET 8, C#, MVVM).
+Kleine GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technologie: Avalonia UI (.NET 10, C#, MVVM).
 
 ### Bereich 1: Einstellungen (nur Anzeige, nicht editierbar)
 - Zeigt die Werte aus der JSON-Konfiguration: `Cloud-Settings.Host`, `Port`, `Share`, `User`, `Server.Port`, `Cloud-Storage.TargetFolders`, `MaxFileSizeMb`, `AllowedExtensions`, `Server.AllowedClientIps`. Der Bereich `Unittest` wird nicht angezeigt, da er nur für Tests relevant ist.
@@ -133,16 +134,18 @@ Solution `PhotoCloud` mit vier Projekten:
 - `src\PhotoCloud.App`: Avalonia-GUI, hostet den Webserver.
 - `tests\PhotoCloud.Tests`: xUnit-Tests.
 
-### Unit-Tests
-- Framework: xUnit (.NET 8), eigenes Projekt `PhotoCloud.Tests`. Die Tests sind in VS Code im Test Explorer (C# Dev Kit) ausführbar, alternativ per `dotnet test`.
-- Die Logik (Speicherzugriff, Logging) liegt in `PhotoCloud.Core`, damit sie ohne Avalonia und Kestrel testbar ist.
-- Testdaten: das Standardfoto `unittest.jpg` (liegt aktuell im Repo-Root; TODO: später nach `tests\PhotoCloud.Tests\TestData\` verschieben und als Content ins Testprojekt kopieren).
+### Tests
+- Framework: xUnit (.NET 10), eigenes Projekt `PhotoCloud.Tests`. Der Integrationstest ist in VS Code im Test Explorer (C# Dev Kit) ausführbar, alternativ per `dotnet test`.
+- Die Logik für den Speicherzugriff liegt in `PhotoCloud.Core`, damit sie ohne Avalonia und Kestrel testbar ist.
+- Testdaten: das Standardfoto `tests\PhotoCloud.Tests\TestData\unittest.jpg` (wird beim Build ins Testausgabeverzeichnis kopiert).
+- Konfiguration für die Tests: `photocloud.config.json` im Repo-Root (von Git ausgeschlossen, Vorlage: `config.example.json`) oder Pfad per Umgebungsvariable `PHOTOCLOUD_CONFIG`. Fehlt sie oder ist das NAS nicht erreichbar, wird der Integrationstest übersprungen.
+- Ausführen: `dotnet test tests\PhotoCloud.Tests` oder im VS-Code-Test-Explorer.
 
-### Tests (erste Ausbaustufe, weitere folgen später)
-1. **Standardfoto auf die Cloud schieben** (Integrationstest gegen die echte WD My Cloud)
-   - Kopiert `unittest.jpg` über den Storage-Dienst in den Ordner `Unittest.TargetFolder` (JSON-Bereich `Unittest`, relativ zum Share, z. B. `03_Bilder\###photocloud` = `\\hubercloud\hubercloud\03_Bilder\###photocloud`). Der Ordner gehört nicht zu `Cloud-Storage.TargetFolders` und muss vorab manuell existieren, da die Anwendung keine Ordner anlegt.
-   - Prüft, dass die Datei auf dem Share existiert und byte-identisch ist (Größe/Hash), und räumt danach wieder auf.
-   - Benötigt die echte Konfiguration (JSON); ist sie nicht vorhanden oder das NAS nicht erreichbar, wird der Test übersprungen. Kennzeichnung: `Trait("Category", "Integration")`.
+### Test (erste Ausbaustufe)
+- **Standardfoto auf die Cloud schieben** (Integrationstest gegen die echte WD My Cloud)
+  - Kopiert `unittest.jpg` über den Storage-Dienst in den Ordner `Unittest.TargetFolder` (JSON-Bereich `Unittest`, relativ zum Share, z. B. `03_Bilder\###photocloud` = `\\hubercloud\hubercloud\03_Bilder\###photocloud`). Der Ordner gehört nicht zu `Cloud-Storage.TargetFolders` und muss vorab manuell existieren, da die Anwendung keine Ordner anlegt.
+  - Prüft, dass die Datei auf dem Share existiert und byte-identisch ist (Größe/Hash). Die Testdatei bleibt im NAS-Testordner erhalten; bei erneutem Testlauf wird wegen der Namenskollision eine nummerierte Kopie angelegt.
+  - Benötigt die echte Konfiguration (JSON); ist sie nicht vorhanden oder das NAS nicht erreichbar, wird der Test übersprungen. Kennzeichnung: `Trait("Category", "Integration")`.
 2. **Beispiel-Logfile schreiben**
    - Schreibt je einen `Info`- und einen `Error`-Beispieleintrag in eine Logdatei in einem temporären Verzeichnis.
    - Prüft, dass die Datei angelegt wird und Stufe, Zeitstempel, Dateiname und Zielordner im Eintrag stehen.

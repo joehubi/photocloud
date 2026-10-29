@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "net use \\\\hubercloud\\hubercloud /delete",
+      "detail": "Trennt die bestehende SMB-Verbindung zur Cloud-Freigabe.",
+      "type": "process",
+      "command": "net.exe",
+      "args": [
+        "use",
+        "\\\\hubercloud\\hubercloud",
+        "/delete"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

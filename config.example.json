@@ -1,0 +1,21 @@
+{
+  "Cloud-Settings": {
+    "Host": "hubercloud",
+    "Port": 445,
+    "Share": "hubercloud",
+    "User": "benutzer",
+    "Password": "passwort"
+  },
+  "Server": {
+    "Port": 5000,
+    "AllowedClientIps": ["127.0.0.1", "192.168.178.31", "192.168.178.32"]
+  },
+  "Cloud-Storage": {
+    "TargetFolders": ["Bilder\\Urlaub", "Bilder\\Familie", "Bilder\\Sonstiges"],
+    "MaxFileSizeMb": 100,
+    "AllowedExtensions": [".jpg", ".jpeg", ".png", ".heic", ".webp"]
+  },
+  "Unittest": {
+    "TargetFolder": "03_Bilder\\###photocloud"
+  }
+}
