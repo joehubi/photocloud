@@ -57,7 +57,7 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
 
 | Einstellung | Wert |
 |---|---|
-| Betriebsart | Desktop-Anwendung mit GUI (Kestrel läuft darin eingebettet); Start manuell oder per Autostart. Kein Windows-Dienst, da Dienste keine GUI anzeigen können. |
+| Betriebsart | Desktop-Anwendung mit GUI (Kestrel läuft darin eingebettet). Start manuell, kein Autostart. Kein Windows-Dienst, da Dienste keine GUI anzeigen können. |
 | Port | Konfigurierbar über `Server.Port` in der JSON (Standard: `5000`) |
 | Zugriff | Nur Heim-WLAN (kein Port-Forwarding im Router) |
 | HTTPS | Nein, HTTP im Heimnetz. Damit entfallen PWA-Installation und Web Share Target (siehe „Kann“-Liste, falls später gewünscht). |
@@ -70,11 +70,14 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
 - [ ] Bilder mehrfach hintereinander hinzufügen (Sammeln aus mehreren Alben/Tagen), bevor hochgeladen wird
 - [ ] Reset: Button „Neu beginnen“ verwirft die gesamte Auswahl, um von vorn zu starten (keine Abwahl einzelner Bilder)
 - [ ] Upload mit Fortschrittsanzeige pro Datei; Status (wartend/hochgeladen/Fehler) als Eintrag in einer Dateiliste
-- [ ] Existierende Dateien nicht überschreiben (Suffix bei Namenskollision)
+- [ ] Existierende Dateien nicht überschreiben: Bei Namenskollision wird ein Zähler angehängt, z. B. `foto (1).jpg`, `foto (2).jpg`
 
 ## 5. Nicht-funktionale Anforderungen
 - Maximale Dateigröße und erlaubte Dateiendungen sind in der JSON konfigurierbar (`Cloud-Storage.MaxFileSizeMb`, `Cloud-Storage.AllowedExtensions`, Standard: 100 MB und `.jpg .jpeg .png .heic .webp`)
 - Streaming-Upload, keine vollständige Pufferung im RAM
+- Abbruch mitten im Upload (z. B. WLAN weg): Die Datei wird direkt am Zielort geschrieben; bei Abbruch oder Fehler wird die unvollständige Datei gelöscht und der Vorgang als `Error` geloggt.
+- Mehrere Uploads gleichzeitig (z. B. von beiden Smartphones) sind erlaubt. Die Vergabe des Dateinamens bei Kollisionen muss dabei threadsicher sein, damit sich zwei Uploads nicht überschreiben.
+- Ist das NAS beim Start nicht erreichbar, startet die Anwendung trotzdem samt Webserver. Die GUI zeigt den Status „nicht erreichbar“, und Uploads schlagen als `Error` fehl, bis das NAS wieder erreichbar ist.
 - Schutz vor Path Traversal (`..`): Der Client darf nur Ordner aus `Cloud-Storage.TargetFolders` wählen, Dateinamen werden bereinigt (keine Pfadanteile)
 - Windows-Firewall: Damit das Smartphone den Webserver erreicht, ist eine eingehende Regel für den Serverport nötig (Standard: 5000, TCP, entspricht `Server.Port`). Die Regel gilt nur für das Netzwerkprofil **Privat**.
   - Windows ordnet jedes Netzwerk einem Profil zu: *Privat* (vertrauenswürdig, z. B. Heim-WLAN), *Öffentlich* (fremde Netze wie Café, Hotel, Bahn-WLAN) oder *Domäne* (Firmennetz). Die Regel greift nur im Privatprofil. In öffentlichen Netzen bleibt der Port gesperrt, sodass dort niemand auf den Server zugreifen kann.
@@ -115,7 +118,7 @@ Kleine GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technolog
 - Tabelle/Liste mit einem Eintrag pro Ereignis (übertragenes Bild, abgelehnter Zugriff, Fehler): Stufe, Zeitstempel, Dateiname, Zielordner (aus `Cloud-Storage.TargetFolders`), Dateigröße, Ergebnis/Meldung.
 - Neue Einträge erscheinen live, neueste zuerst.
 - Jeder Eintrag hat eine Stufe (`Info` oder `Error`), die visuell sofort erkennbar ist: eigene Spalte mit Symbol (ℹ / ⚠) und Farbe (Info neutral/grün, Error rot, Zeile ggf. rot hinterlegt). Zusätzlich lässt sich das Log nach Stufe filtern (Alle / nur Errors).
-- Die Einträge werden zusätzlich in eine Logdatei geschrieben: `logs\upload-JJJJ-MM-TT.log` neben der Anwendung, mit täglicher Rotation (jeden Tag eine neue Datei). Beim Start werden die letzten 500 Einträge aus den Logdateien in die GUI geladen, sodass frühere Uploads nach einem Neustart sichtbar sind.
+- Die Einträge werden zusätzlich in eine Logdatei geschrieben: `logs\upload-JJJJ-MM-TT.log` neben der Anwendung, mit täglicher Rotation (jeden Tag eine neue Datei). Beim Start werden die letzten 500 Einträge aus den Logdateien in die GUI geladen, sodass frühere Uploads nach einem Neustart sichtbar sind. Logdateien werden nie automatisch gelöscht.
 - Jeder Upload-Vorgang wird pro Datei protokolliert (Erfolg als `Info`, Fehler als `Error`), unabhängig davon, ob er erfolgreich war.
 - Fehler (NAS nicht erreichbar, Anmeldung am Share fehlgeschlagen, abgelehnte Dateien oder Geräte) werden als `Error` protokolliert, erfolgreiche Übertragungen als `Info`. Die Stufe steht auch in der Logdatei.
 
@@ -123,9 +126,16 @@ Kleine GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technolog
 - Kein Tray-Icon: Die GUI wird normal in der Taskleiste minimiert.
 - Kein Start/Stopp-Button: Der Webserver läuft, solange die Anwendung läuft; zum Beenden die Anwendung schließen.
 
-## 7b. Unit-Tests
+## 7b. Projektstruktur und Unit-Tests
+Solution `PhotoCloud` mit vier Projekten:
+- `src\PhotoCloud.Core`: Klassenbibliothek (Konfiguration, Cloud-Storage-Zugriff, Logging); ohne GUI- und Web-Abhängigkeiten.
+- `src\PhotoCloud.Web`: ASP.NET Core Minimal API und statische Webmaske.
+- `src\PhotoCloud.App`: Avalonia-GUI, hostet den Webserver.
+- `tests\PhotoCloud.Tests`: xUnit-Tests.
+
+### Unit-Tests
 - Framework: xUnit (.NET 8), eigenes Projekt `PhotoCloud.Tests`. Die Tests sind in VS Code im Test Explorer (C# Dev Kit) ausführbar, alternativ per `dotnet test`.
-- Die Logik (Speicherzugriff, Logging) liegt in einer GUI- und Web-unabhängigen Klassenbibliothek, damit sie ohne Avalonia und Kestrel testbar ist.
+- Die Logik (Speicherzugriff, Logging) liegt in `PhotoCloud.Core`, damit sie ohne Avalonia und Kestrel testbar ist.
 - Testdaten: das Standardfoto `unittest.jpg` (liegt aktuell im Repo-Root; TODO: später nach `tests\PhotoCloud.Tests\TestData\` verschieben und als Content ins Testprojekt kopieren).
 
 ### Tests (erste Ausbaustufe, weitere folgen später)
