@@ -8,33 +8,37 @@
         Width="900" Height="650"
         Icon="/Assets/photocloud.ico"
         Title="PhotoCloud">
-    <Grid RowDefinitions="Auto,Auto,*" Margin="12">
-        <StackPanel Grid.Row="0" Spacing="4">
-            <TextBlock Text="Einstellungen (nur lesen)" FontWeight="Bold" FontSize="16"/>
-            <TextBox Name="SettingsBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" MinHeight="150"/>
-        </StackPanel>
+    <Grid RowDefinitions="Auto,*" Margin="12">
+        <TextBlock Grid.Row="0" Name="StatusText" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-        <StackPanel Grid.Row="1" Margin="0,12,0,4" Spacing="8">
-            <TextBlock Name="StatusText" TextWrapping="Wrap"/>
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <TextBlock Text="Log" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
-                <ComboBox Name="LevelFilter" SelectedIndex="0" Width="140">
-                    <ComboBoxItem>Alle</ComboBoxItem>
-                    <ComboBoxItem>Nur Fehler</ComboBoxItem>
-                    <ComboBoxItem>Nur Info</ComboBoxItem>
-                </ComboBox>
-            </StackPanel>
-        </StackPanel>
-
-        <ListBox Grid.Row="2" Name="LogList">
-            <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="local:LogRow">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBlock Text="{Binding Icon}" Foreground="{Binding Brush}" FontWeight="Bold" Width="18"/>
-                        <TextBlock Text="{Binding Text}" Foreground="{Binding Brush}"/>
+        <TabControl Grid.Row="1">
+            <TabItem Header="Log">
+                <Grid RowDefinitions="Auto,*" Margin="0,8,0,0">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,8">
+                        <TextBlock Text="Filter" VerticalAlignment="Center"/>
+                        <ComboBox Name="LevelFilter" SelectedIndex="0" Width="140">
+                            <ComboBoxItem>Alle</ComboBoxItem>
+                            <ComboBoxItem>Nur Fehler</ComboBoxItem>
+                            <ComboBoxItem>Nur Info</ComboBoxItem>
+                        </ComboBox>
                     </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+
+                    <ListBox Grid.Row="1" Name="LogList">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="local:LogRow">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding Icon}" Foreground="{Binding Brush}" FontWeight="Bold" Width="18"/>
+                                    <TextBlock Text="{Binding Text}" Foreground="{Binding Brush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Settings">
+                <TextBox Name="SettingsBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" Margin="0,8,0,0"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

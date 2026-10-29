@@ -157,12 +157,41 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Formatiert die Config schreibgeschützt für die Anzeige; das Passwort bleibt maskiert.</summary>
-    private static string FormatSettings(PhotoCloudConfig c, string path) => string.Join(Environment.NewLine,
-        $"Konfiguration:   {path}",
-        $"Cloud:           {c.CloudSettings.SharePath}  (Benutzer: {c.CloudSettings.User}, Passwort: ********)",
-        $"Server-Port:     {c.Server.Port}",
-        $"Erlaubte IPs:    {string.Join(", ", c.Server.AllowedClientIps)}",
-        $"Zielordner:      {string.Join(", ", c.CloudStorage.TargetFolders)}",
-        $"Max. Dateigröße: {c.CloudStorage.MaxFileSizeMb} MB",
-        $"Dateitypen:      {string.Join(", ", c.CloudStorage.AllowedExtensions)}");
+    private static string FormatSettings(PhotoCloudConfig c, string path)
+    {
+        var cloud = c.CloudSettings;
+        var lines = new List<string>
+        {
+            $"Konfigurationsdatei: {path}",
+            "",
+            "[Cloud-Settings]",
+            $"  Host:              {cloud.Host}",
+            $"  Port:              {cloud.Port}",
+            $"  Share:             {cloud.Share}",
+            $"  User:              {cloud.User}",
+            "  Password:          ********",
+            "",
+            "[Server]",
+            $"  Port:              {c.Server.Port}",
+            $"  AllowedClientIps:  {FormatList(c.Server.AllowedClientIps)}",
+            "",
+            "[Cloud-Storage]",
+            $"  TargetFolders:     {FormatList(c.CloudStorage.TargetFolders)}",
+            $"  MaxFileSizeMb:     {c.CloudStorage.MaxFileSizeMb}",
+            $"  AllowedExtensions: {FormatList(c.CloudStorage.AllowedExtensions)}",
+            "",
+            "[Unittest]",
+            $"  TargetFolder:      {c.Unittest.TargetFolder}",
+        };
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    /// <summary>Stellt jeden Listeneintrag in eine eigene Zeile, eingerückt unter dem Attributnamen.</summary>
+    private static string FormatList(IEnumerable<string> items)
+    {
+        var list = items.ToList();
+        return list.Count == 0
+            ? "-"
+            : string.Concat(list.Select(i => Environment.NewLine + "    - " + i));
+    }
 }
