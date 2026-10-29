@@ -56,8 +56,8 @@ public class WebHostTests : IDisposable
             var response = await client.PostAsync("/api/upload?folder=Bilder", form);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.True(File.Exists(Path.Combine(_root, "Bilder", "a.jpg")));
-            Assert.Contains(log, e => e.Level == LogLevel.Info && e.FileName == "a.jpg");
+            Assert.True(File.Exists(Path.Combine(_root, "Bilder", $"{DateTime.Now:yyyyMMdd}_a.jpg")));
+            Assert.Contains(log, e => e.Level == LogLevel.Info && e.FileName == $"{DateTime.Now:yyyyMMdd}_a.jpg");
         }
     }
 

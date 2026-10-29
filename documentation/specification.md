@@ -71,7 +71,11 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
 - [ ] Bilder mehrfach hintereinander hinzufügen (Sammeln aus mehreren Alben/Tagen), bevor hochgeladen wird
 - [ ] Reset: Button „Neu beginnen“ verwirft die gesamte Auswahl, um von vorn zu starten (keine Abwahl einzelner Bilder)
 - [ ] Upload mit Fortschrittsanzeige pro Datei; Status (wartend/hochgeladen/Fehler) als Eintrag in einer Dateiliste
-- [ ] Existierende Dateien nicht überschreiben: Bei Namenskollision wird ein Zähler angehängt, z. B. `foto (1).jpg`, `foto (2).jpg`
+- [ ] Dateiname: Vor jedem Dateinamen wird das Aufnahmedatum als `YYYYMMDD_` ergänzt, z. B. `20240705_foto.jpg`
+  - Quelle: EXIF-Aufnahmedatum (DateTimeOriginal, sonst DateTimeDigitized), gelesen aus den ersten 1 MB der Datei
+  - Ohne EXIF: Änderungsdatum der Datei laut Browser (`lastModified`), sonst das aktuelle Datum
+  - Beginnt der Name bereits mit `YYYYMMDD_`, wird nichts ergänzt
+- [ ] Existierende Dateien nicht überschreiben: Bei Namenskollision wird ein Zähler angehängt, z. B. `20240705_foto (1).jpg`, `20240705_foto (2).jpg`
 
 ## 5. Nicht-funktionale Anforderungen
 - Maximale Dateigröße und erlaubte Dateiendungen sind in der JSON konfigurierbar (`Cloud-Storage.MaxFileSizeMb`, `Cloud-Storage.AllowedExtensions`, Standard: 100 MB und `.jpg .jpeg .png .heic .webp`)

@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace PhotoCloud.Core.Storage;
 
 public sealed record SaveResult(string Folder, string FileName, long SizeBytes);
@@ -7,6 +9,9 @@ public sealed class UploadRejectedException(string message) : Exception(message)
 /// <summary>Writes files into a fixed set of existing folders below a share root. Never creates folders.</summary>
 public sealed class CloudStorage
 {
+    private const int HeaderBytes = 1024 * 1024;
+    private static readonly Regex DatePrefixPattern = new(@"^\d{8}_", RegexOptions.Compiled);
+
     private readonly string _rootPath;
     private readonly IReadOnlyList<string> _folders;
     private readonly HashSet<string> _allowedExtensions;
@@ -23,8 +28,11 @@ public sealed class CloudStorage
 
     public IReadOnlyList<string> Folders => _folders;
 
-    /// <summary>Prüft Ordner, Name und Endung und streamt die Datei ins Ziel; bei Fehlern wird die Teildatei gelöscht.</summary>
-    public async Task<SaveResult> SaveAsync(string folder, string fileName, Stream content, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Prüft Ordner, Name und Endung und streamt die Datei ins Ziel; bei Fehlern wird die Teildatei gelöscht.
+    /// Dem Dateinamen wird das Aufnahmedatum als "YYYYMMDD_" vorangestellt (EXIF, sonst <paramref name="fallbackDate"/>, sonst heute).
+    /// </summary>
+    public async Task<SaveResult> SaveAsync(string folder, string fileName, Stream content, DateTime? fallbackDate = null, CancellationToken cancellationToken = default)
     {
         var configuredFolder = _folders.FirstOrDefault(f => string.Equals(f, folder, StringComparison.OrdinalIgnoreCase))
             ?? throw new UploadRejectedException($"Zielordner '{folder}' ist nicht konfiguriert.");
@@ -42,22 +50,28 @@ public sealed class CloudStorage
             throw new DirectoryNotFoundException($"Zielordner '{folderPath}' existiert nicht.");
         }
 
+        // Der Dateianfang wird zuerst gelesen, weil dort die EXIF-Daten für das Aufnahmedatum liegen.
+        var head = new byte[HeaderBytes];
+        var headLength = await ReadFullyAsync(content, head, cancellationToken);
+        var captured = CaptureDateReader.TryRead(head.AsMemory(0, headLength)) ?? fallbackDate ?? DateTime.Now;
+        safeName = WithDatePrefix(safeName, captured);
+
         var (stream, finalPath) = CreateUniqueFile(folderPath, safeName);
         long written = 0;
         try
         {
             await using (stream)
             {
+                written = headLength;
+                EnsureWithinLimit(written);
+                await stream.WriteAsync(head.AsMemory(0, headLength), cancellationToken);
+
                 var buffer = new byte[81920];
                 int read;
                 while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0)
                 {
                     written += read;
-                    if (written > _maxBytes)
-                    {
-                        throw new UploadRejectedException($"Datei überschreitet die maximale Größe von {_maxBytes / 1024 / 1024} MB.");
-                    }
-
+                    EnsureWithinLimit(written);
                     await stream.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
                 }
             }
@@ -70,6 +84,36 @@ public sealed class CloudStorage
 
         return new SaveResult(configuredFolder, Path.GetFileName(finalPath), written);
     }
+
+    private void EnsureWithinLimit(long written)
+    {
+        if (written > _maxBytes)
+        {
+            throw new UploadRejectedException($"Datei überschreitet die maximale Größe von {_maxBytes / 1024 / 1024} MB.");
+        }
+    }
+
+    /// <summary>Liest, bis der Puffer voll oder der Stream zu Ende ist; liefert die gelesene Länge.</summary>
+    private static async Task<int> ReadFullyAsync(Stream content, byte[] buffer, CancellationToken cancellationToken)
+    {
+        var total = 0;
+        while (total < buffer.Length)
+        {
+            var read = await content.ReadAsync(buffer.AsMemory(total), cancellationToken);
+            if (read == 0)
+            {
+                break;
+            }
+
+            total += read;
+        }
+
+        return total;
+    }
+
+    /// <summary>Stellt "YYYYMMDD_" voran, außer der Name beginnt bereits damit.</summary>
+    private static string WithDatePrefix(string fileName, DateTime date) =>
+        DatePrefixPattern.IsMatch(fileName) ? fileName : $"{date:yyyyMMdd}_{fileName}";
 
     // CreateNew is atomic, so concurrent uploads of the same name never overwrite each other.
     /// <summary>Legt die Datei an; bei vorhandenem Namen wird ein Zähler angehängt ("name (1).ext").</summary>

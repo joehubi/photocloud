@@ -87,6 +87,9 @@ public static class PhotoCloudWebHost
         }
 
         var folder = request.Query["folder"].ToString();
+        DateTime? fallbackDate = long.TryParse(request.Query["lastModified"], out var lastModifiedMs)
+            ? DateTimeOffset.FromUnixTimeMilliseconds(lastModifiedMs).LocalDateTime
+            : null;
         log(new LogEntry(DateTime.Now, LogLevel.Info, folder, "", 0, $"Upload gestartet von {ClientIp(context)}."));
         var reader = new MultipartReader(HeaderUtilities.RemoveQuotes(mediaType.Boundary).Value!, request.Body);
         var results = new List<object>();
@@ -102,7 +105,7 @@ public static class PhotoCloudWebHost
                     continue;
                 }
 
-                results.Add(await SaveOneAsync(storage, log, folder, fileName, section.Body, cancellation));
+                results.Add(await SaveOneAsync(storage, log, folder, fileName, section.Body, fallbackDate, cancellation));
             }
         }
         catch (OperationCanceledException)
@@ -120,11 +123,11 @@ public static class PhotoCloudWebHost
     }
 
     /// <summary>Speichert eine Datei über CloudStorage, schreibt einen Info- oder Error-Logeintrag und liefert das Ergebnis für die Antwort.</summary>
-    private static async Task<object> SaveOneAsync(CloudStorage storage, Action<LogEntry> log, string folder, string fileName, Stream body, CancellationToken cancellation)
+    private static async Task<object> SaveOneAsync(CloudStorage storage, Action<LogEntry> log,     string folder, string fileName, Stream body, DateTime? fallbackDate, CancellationToken cancellation)
     {
         try
         {
-            var saved = await storage.SaveAsync(folder, fileName, body, cancellation);
+                var saved = await storage.SaveAsync(folder, fileName, body, fallbackDate, cancellation);
             log(new LogEntry(DateTime.Now, LogLevel.Info, saved.Folder, saved.FileName, saved.SizeBytes, "Hochgeladen."));
             return new { name = fileName, ok = true, savedAs = saved.FileName, size = saved.SizeBytes };
         }
