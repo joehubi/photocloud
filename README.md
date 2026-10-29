@@ -1,3 +1,5 @@
+<p align="center"><img src="src/PhotoCloud.Web/Assets/favicon.png" alt="PhotoCloud-Banane" width="160"></p>
+
 # PhotoCloud
 
 Windows-Anwendung, mit der du Fotos vom Smartphone direkt per WLAN in feste Ordner deiner Cloud-Festplatte (NAS) hochlädst – ohne USB-Kabel.

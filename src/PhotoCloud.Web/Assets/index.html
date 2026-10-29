@@ -8,11 +8,16 @@
 <link rel="apple-touch-icon" href="/favicon.png">
 <style>
   body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; max-width: 600px; margin-inline: auto; }
-  h1 { font-size: 1.3rem; }
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  header img { flex: none; }
+  h1 { font-size: 2rem; margin: 0; }
   label, button, select { display: block; width: 100%; font-size: 1rem; margin: 8px 0; padding: 12px; box-sizing: border-box; }
-  button { border: 0; border-radius: 8px; background: #1a73e8; color: #fff; }
-  button.secondary { background: #666; }
+  button { display: flex; align-items: center; justify-content: center; gap: 12px; border: 2px solid #c79a00; border-radius: 12px; background: #ffd914; color: #4a3000; font-weight: 600; }
+  button svg { width: 56px; height: 56px; flex: none; }
+  button:active:not(:disabled) { background: #f2c800; }
+  button.secondary { background: #fff3a8; border-color: #e0c040; }
   button:disabled { opacity: .5; }
+  select { border: 2px solid #e0c040; border-radius: 12px; background: #fffbe0; color: #4a3000; }
   ul { list-style: none; padding: 0; }
   li { padding: 8px 0; border-bottom: 1px solid #ddd; word-break: break-all; }
   progress { width: 100%; }
@@ -20,14 +25,61 @@
 </style>
 </head>
 <body>
-<h1>PhotoCloud</h1>
+<header><img src="/favicon.png" alt="" width="96" height="96"><h1>PhotoCloud</h1></header>
 <label for="folder">Zielordner</label>
 <select id="folder"></select>
 <input id="picker" type="file" multiple accept="image/*,{{ACCEPT}}" hidden>
-<button id="pick" type="button">Bilder auswählen</button>
-<button id="upload" type="button" disabled>Hochladen</button>
-<button id="reset" type="button" class="secondary">Neu beginnen</button>
-<p id="summary"></p>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <path id="banana" d="M10 6 C2 28 12 45 30 44 C42 43 47 30 47 17 C43 30 34 27 27 27 C20 27 17 20 17 6 Z" fill="#ffd914" stroke="#7a4b10" stroke-width="2" stroke-linejoin="round"/>
+  </defs>
+</svg>
+<button id="pick" type="button">
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <circle cx="32" cy="32" r="31" fill="#fffbe0"/>
+    <g transform="translate(6 -2) rotate(-18 28 28) scale(.9)"><use href="#banana"/></g>
+    <g fill="#f2b98f" stroke="#7a4b10" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+      <rect x="18" y="39" width="30" height="20" rx="8"/>
+      <rect x="20" y="30" width="9" height="16" rx="4.5"/>
+      <rect x="29" y="28" width="9" height="18" rx="4.5"/>
+      <rect x="38" y="30" width="9" height="16" rx="4.5"/>
+      <path d="M18 46 C12 44 10 38 14 36 C17 35 19 38 20 41"/>
+    </g>
+  </svg>
+  Bilder auswählen
+</button>
+<button id="upload" type="button" disabled>
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <circle cx="32" cy="32" r="31" fill="#fffbe0"/>
+    <g transform="translate(9 -4) rotate(-35 28 22) scale(.85)"><use href="#banana"/></g>
+    <g fill="none" stroke="#7a4b10" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 54 L22 46 M32 58 L32 48 M42 54 L42 46"/>
+      <path d="M32 44 L32 38 M28 41 L32 37 L36 41"/>
+    </g>
+  </svg>
+  Hochladen
+</button>
+<button id="reset" type="button" class="secondary">
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <circle cx="32" cy="32" r="31" fill="#fffbe0"/>
+    <path d="M6 58 H58" stroke="#7a4b10" stroke-width="3" stroke-linecap="round"/>
+    <g transform="translate(-4 33) scale(1.25 .45)"><use href="#banana"/></g>
+    <g fill="#ffd914" stroke="#7a4b10" stroke-width="1.6">
+      <ellipse cx="7" cy="52" rx="3.5" ry="2.5"/><ellipse cx="57" cy="52" rx="3.5" ry="2.5"/>
+      <circle cx="12" cy="44" r="2.2"/><circle cx="52" cy="44" r="2.2"/>
+    </g>
+    <g fill="#f2b98f" stroke="#7a4b10" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+      <rect x="16" y="4" width="32" height="14" rx="6"/>
+      <rect x="17" y="15" width="9" height="16" rx="4.5"/>
+      <rect x="27" y="15" width="9" height="18" rx="4.5"/>
+      <rect x="37" y="15" width="9" height="16" rx="4.5"/>
+    </g>
+    <g fill="none" stroke="#7a4b10" stroke-width="2.5" stroke-linecap="round">
+      <path d="M10 36 L4 32 M54 36 L60 32 M12 41 L5 42 M52 41 L59 42"/>
+    </g>
+  </svg>
+  Neu beginnen
+</button><p id="summary"></p>
 <ul id="list"></ul>
 <script>
 const MAX_BYTES = {{MAXMB}} * 1024 * 1024;

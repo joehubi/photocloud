@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\photocloud.ico" />
+    <AvaloniaResource Include="Assets\banana.png" />
   </ItemGroup>
 
   <ItemGroup>

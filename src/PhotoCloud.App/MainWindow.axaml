@@ -8,10 +8,15 @@
         Width="900" Height="650"
         Icon="/Assets/photocloud.ico"
         Title="PhotoCloud">
-    <Grid RowDefinitions="Auto,*" Margin="12">
-        <TextBlock Grid.Row="0" Name="StatusText" TextWrapping="Wrap" Margin="0,0,0,8"/>
+    <Grid RowDefinitions="Auto,Auto,*" Margin="12">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="16" Margin="0,0,0,12">
+            <Image Source="/Assets/banana.png" Width="96" Height="96"/>
+            <TextBlock Text="PhotoCloud" FontSize="36" FontWeight="Bold" VerticalAlignment="Center"/>
+        </StackPanel>
 
-        <TabControl Grid.Row="1">
+        <TextBlock Grid.Row="1" Name="StatusText" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+        <TabControl Grid.Row="2">
             <TabItem Header="Log">
                 <Grid RowDefinitions="Auto,*" Margin="0,8,0,0">
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12" Margin="0,0,0,8">
