@@ -2,6 +2,18 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "build PhotoCloud.App",
+      "detail": "Baut die Avalonia-App (inkl. PhotoCloud.Core).",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}\\src\\PhotoCloud.App\\PhotoCloud.App.csproj"
+      ],
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "net use \\\\hubercloud\\hubercloud /delete",
       "detail": "Trennt die bestehende SMB-Verbindung zur Cloud-Freigabe.",
       "type": "process",

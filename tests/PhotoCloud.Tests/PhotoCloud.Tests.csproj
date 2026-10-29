@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\PhotoCloud.Core\PhotoCloud.Core.csproj" />
+    <ProjectReference Include="..\..\src\PhotoCloud.Web\PhotoCloud.Web.csproj" />
   </ItemGroup>
 
 </Project>

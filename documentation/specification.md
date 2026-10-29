@@ -130,7 +130,7 @@ Kleine GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technolog
 ## 7b. Projektstruktur und Unit-Tests
 Solution `PhotoCloud` mit vier Projekten:
 - `src\PhotoCloud.Core`: Klassenbibliothek (Konfiguration, Cloud-Storage-Zugriff, Logging); ohne GUI- und Web-Abhängigkeiten.
-- `src\PhotoCloud.Web`: ASP.NET Core Minimal API und statische Webmaske.
+- `src\PhotoCloud.Web`: ASP.NET Core Minimal API und Webmaske (eingebettetes `index.html`), als Bibliothek; `PhotoCloudWebHost.Build` wird von der App gestartet.
 - `src\PhotoCloud.App`: Avalonia-GUI, hostet den Webserver.
 - `tests\PhotoCloud.Tests`: xUnit-Tests.
 

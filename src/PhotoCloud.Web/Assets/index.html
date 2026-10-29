@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PhotoCloud</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; max-width: 600px; margin-inline: auto; }
+  h1 { font-size: 1.3rem; }
+  label, button, select { display: block; width: 100%; font-size: 1rem; margin: 8px 0; padding: 12px; box-sizing: border-box; }
+  button { border: 0; border-radius: 8px; background: #1a73e8; color: #fff; }
+  button.secondary { background: #666; }
+  button:disabled { opacity: .5; }
+  ul { list-style: none; padding: 0; }
+  li { padding: 8px 0; border-bottom: 1px solid #ddd; word-break: break-all; }
+  progress { width: 100%; }
+  .ok { color: #188038; } .err { color: #d93025; }
+</style>
+</head>
+<body>
+<h1>PhotoCloud</h1>
+<label for="folder">Zielordner</label>
+<select id="folder"></select>
+<input id="picker" type="file" multiple accept="image/*,{{ACCEPT}}" hidden>
+<button id="pick" type="button">Bilder auswählen</button>
+<button id="upload" type="button" disabled>Hochladen</button>
+<button id="reset" type="button" class="secondary">Neu beginnen</button>
+<p id="summary"></p>
+<ul id="list"></ul>
+<script>
+const MAX_BYTES = {{MAXMB}} * 1024 * 1024;
+const $ = id => document.getElementById(id);
+let items = [];
+let busy = false;
+
+fetch('/api/folders').then(r => r.json()).then(folders => {
+  $('folder').innerHTML = folders.map(f => `<option>${f.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join('');
+});
+
+function render() {
+  $('list').innerHTML = '';
+  for (const it of items) {
+    const li = document.createElement('li');
+    const status = it.state === 'done' ? '<span class="ok">✔ hochgeladen</span>'
+      : it.state === 'error' ? `<span class="err">✖ ${it.error}</span>`
+      : it.state === 'uploading' ? '<progress max="100" value="' + it.percent + '"></progress>' : 'wartet';
+    li.append(it.file.name + ' ');
+    li.insertAdjacentHTML('beforeend', status);
+    $('list').append(li);
+  }
+  $('upload').disabled = busy || !items.some(i => i.state === 'pending');
+  $('summary').textContent = items.length ? `${items.length} Datei(en) ausgewählt` : '';
+}
+
+$('pick').onclick = () => $('picker').click();
+$('picker').onchange = () => {
+  for (const file of $('picker').files) {
+    items.push(file.size > MAX_BYTES
+      ? { file, state: 'error', error: 'zu groß' }
+      : { file, state: 'pending', percent: 0 });
+  }
+  $('picker').value = '';
+  render();
+};
+$('reset').onclick = () => { if (!busy) { items = []; render(); } };
+
+function send(it) {
+  return new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload?folder=' + encodeURIComponent($('folder').value));
+    xhr.upload.onprogress = e => { if (e.lengthComputable) { it.percent = e.loaded * 100 / e.total; render(); } };
+    xhr.onload = () => {
+      try {
+        const r = JSON.parse(xhr.responseText);
+        const f = r.files && r.files[0];
+        if (f && f.ok) it.state = 'done'; else { it.state = 'error'; it.error = (f && f.error) || r.error || 'Fehler'; }
+      } catch { it.state = 'error'; it.error = 'Fehler ' + xhr.status; }
+      resolve();
+    };
+    xhr.onerror = () => { it.state = 'error'; it.error = 'Server nicht erreichbar'; resolve(); };
+    const form = new FormData();
+    form.append('file', it.file, it.file.name);
+    it.state = 'uploading'; it.percent = 0; render();
+    xhr.send(form);
+  });
+}
+
+$('upload').onclick = async () => {
+  busy = true; $('folder').disabled = true; render();
+  for (const it of items.filter(i => i.state === 'pending')) await send(it);
+  busy = false; $('folder').disabled = false; render();
+};
+render();
+</script>
+</body>
+</html>

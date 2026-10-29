@@ -2,8 +2,38 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d"
+        xmlns:local="clr-namespace:PhotoCloud.App"
         x:Class="PhotoCloud.App.MainWindow"
-        Title="PhotoCloud.App">
-    Welcome to Avalonia!
+        Width="900" Height="650"
+        Title="PhotoCloud">
+    <Grid RowDefinitions="Auto,Auto,*" Margin="12">
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock Text="Einstellungen (nur lesen)" FontWeight="Bold" FontSize="16"/>
+            <TextBox Name="SettingsBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" MinHeight="150"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,12,0,4" Spacing="8">
+            <TextBlock Name="StatusText" TextWrapping="Wrap"/>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="Log" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                <ComboBox Name="LevelFilter" SelectedIndex="0" Width="140">
+                    <ComboBoxItem>Alle</ComboBoxItem>
+                    <ComboBoxItem>Nur Fehler</ComboBoxItem>
+                    <ComboBoxItem>Nur Info</ComboBoxItem>
+                </ComboBox>
+            </StackPanel>
+        </StackPanel>
+
+        <ListBox Grid.Row="2" Name="LogList">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="local:LogRow">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Icon}" Foreground="{Binding Brush}" FontWeight="Bold" Width="18"/>
+                        <TextBlock Text="{Binding Text}" Foreground="{Binding Brush}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
 </Window>

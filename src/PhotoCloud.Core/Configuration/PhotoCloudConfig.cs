@@ -30,6 +30,30 @@ public sealed class PhotoCloudConfig
         return JsonSerializer.Deserialize<PhotoCloudConfig>(stream, JsonOptions)
             ?? throw new InvalidDataException($"Konfiguration '{path}' ist leer.");
     }
+
+    /// <summary>PHOTOCLOUD_CONFIG, otherwise the nearest photocloud.config.json above the app or working directory.</summary>
+    public static string? Locate()
+    {
+        var env = Environment.GetEnvironmentVariable("PHOTOCLOUD_CONFIG");
+        if (!string.IsNullOrWhiteSpace(env))
+        {
+            return File.Exists(env) ? env : null;
+        }
+
+        foreach (var start in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() })
+        {
+            for (var dir = new DirectoryInfo(start); dir != null; dir = dir.Parent)
+            {
+                var candidate = Path.Combine(dir.FullName, FileName);
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        return null;
+    }
 }
 
 public sealed class CloudSettings

@@ -2,6 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "PhotoCloud.App bauen und starten",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build PhotoCloud.App",
+      "program": "${workspaceFolder}\\src\\PhotoCloud.App\\bin\\Debug\\net10.0\\PhotoCloud.App.dll",
+      "cwd": "${workspaceFolder}\\src\\PhotoCloud.App",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    },
+    {
       "name": "NAS Benutzer Reset",
       "type": "node-terminal",
       "request": "launch",
