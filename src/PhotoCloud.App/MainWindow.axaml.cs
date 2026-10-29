@@ -40,6 +40,7 @@ public partial class MainWindow : Window
             _nasTimer?.Stop();
             if (_server is not null)
             {
+                _logWriter?.Write(new LogEntry(DateTime.Now, LogLevel.Info, "", "", 0, "Anwendung wird beendet."));
                 await _server.StopAsync();
             }
         };
@@ -82,9 +83,12 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StatusText.Text = $"✖ Server konnte nicht gestartet werden (Port {_config.Server.Port} belegt?): {ex.Message}";
+            OnLog(new LogEntry(DateTime.Now, LogLevel.Error, "", "", 0, $"Server konnte nicht gestartet werden: {ex.Message}"));
             return;
         }
 
+        OnLog(new LogEntry(DateTime.Now, LogLevel.Info, "", "", 0,
+            $"Anwendung gestartet (Port {_config.Server.Port}, Cloud {(nasOnline ? "verbunden" : "nicht erreichbar")})."));
         ShowStatus(nasOnline);
         _nasTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
         _nasTimer.Tick += async (_, _) => ShowStatus(await Task.Run(CheckNas));

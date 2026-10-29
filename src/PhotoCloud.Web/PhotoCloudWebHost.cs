@@ -56,12 +56,23 @@ public static class PhotoCloudWebHost
             await next();
         });
 
-        app.MapGet("/", () => Results.Content(indexHtml, "text/html; charset=utf-8"));
+        app.MapGet("/", (HttpContext context) =>
+        {
+            log(new LogEntry(DateTime.Now, LogLevel.Info, "", "", 0, $"Webmaske geöffnet von {ClientIp(context)}."));
+            return Results.Content(indexHtml, "text/html; charset=utf-8");
+        });
         app.MapGet("/favicon.png", () => Results.Bytes(favicon, "image/png"));
         app.MapGet("/favicon.ico", () => Results.Bytes(favicon, "image/png"));
         app.MapGet("/api/folders", () => Results.Json(storage.Folders));
         app.MapPost("/api/upload", (Delegate)((HttpContext context) => HandleUploadAsync(context, storage, log)));
         return app;
+    }
+
+    /// <summary>Client-IP als IPv4-Text (IPv4-mapped IPv6 wird zurückgerechnet).</summary>
+    private static string ClientIp(HttpContext context)
+    {
+        var ip = context.Connection.RemoteIpAddress;
+        return (ip is { IsIPv4MappedToIPv6: true } ? ip.MapToIPv4() : ip)?.ToString() ?? "unbekannt";
     }
 
     /// <summary>Liest die multipart-Anfrage als Stream und speichert jede Datei; antwortet mit einem Ergebnis pro Datei.</summary>
@@ -76,6 +87,7 @@ public static class PhotoCloudWebHost
         }
 
         var folder = request.Query["folder"].ToString();
+        log(new LogEntry(DateTime.Now, LogLevel.Info, folder, "", 0, $"Upload gestartet von {ClientIp(context)}."));
         var reader = new MultipartReader(HeaderUtilities.RemoveQuotes(mediaType.Boundary).Value!, request.Body);
         var results = new List<object>();
         var cancellation = context.RequestAborted;
