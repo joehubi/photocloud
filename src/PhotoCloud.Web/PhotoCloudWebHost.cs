@@ -35,6 +35,7 @@ public static class PhotoCloudWebHost
             .OfType<IPAddress>()
             .ToHashSet();
         var indexHtml = LoadIndexHtml(config);
+        var favicon = LoadResource("favicon.png");
 
         app.Use(async (context, next) =>
         {
@@ -55,6 +56,8 @@ public static class PhotoCloudWebHost
         });
 
         app.MapGet("/", () => Results.Content(indexHtml, "text/html; charset=utf-8"));
+        app.MapGet("/favicon.png", () => Results.Bytes(favicon, "image/png"));
+        app.MapGet("/favicon.ico", () => Results.Bytes(favicon, "image/png"));
         app.MapGet("/api/folders", () => Results.Json(storage.Folders));
         app.MapPost("/api/upload", (Delegate)((HttpContext context) => HandleUploadAsync(context, storage, log)));
         return app;
@@ -121,6 +124,15 @@ public static class PhotoCloudWebHost
             log(new LogEntry(DateTime.Now, LogLevel.Error, folder, fileName, 0, $"{message} {ex.Message}"));
             return new { name = fileName, ok = false, error = message };
         }
+    }
+
+    private static byte[] LoadResource(string name)
+    {
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException($"{name} fehlt als eingebettete Ressource.");
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        return memory.ToArray();
     }
 
     private static string LoadIndexHtml(PhotoCloudConfig config)

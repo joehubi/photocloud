@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -103,8 +105,18 @@ public partial class MainWindow : Window
     {
         var port = _config!.Server.Port;
         var nas = nasOnline ? "✔ Cloud verbunden" : "✖ Cloud nicht erreichbar";
-        StatusText.Text = $"Server läuft: http://127.0.0.1:{port}   |   {nas} ({_config.CloudSettings.SharePath})";
+        var phoneUrls = LocalIPv4Addresses().Select(ip => $"http://{ip}:{port}").ToList();
+        var phone = phoneUrls.Count > 0 ? string.Join("  oder  ", phoneUrls) : "keine Netzwerkverbindung gefunden";
+        StatusText.Text = $"Server läuft: http://127.0.0.1:{port}   |   {nas} ({_config.CloudSettings.SharePath}){Environment.NewLine}Adresse für das Smartphone: {phone}";
     }
+
+    private static IEnumerable<string> LocalIPv4Addresses() => NetworkInterface.GetAllNetworkInterfaces()
+        .Where(n => n.OperationalStatus == OperationalStatus.Up
+            && n.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel)
+            && n.GetIPProperties().GatewayAddresses.Any(g => g.Address.AddressFamily == AddressFamily.InterNetwork))
+        .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+        .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork)
+        .Select(a => a.Address.ToString());
 
     private void OnLog(LogEntry entry)
     {

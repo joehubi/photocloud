@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PhotoCloud.Core\PhotoCloud.Core.csproj" />
     <EmbeddedResource Include="Assets\index.html" LogicalName="index.html" />
+    <EmbeddedResource Include="Assets\favicon.png" LogicalName="favicon.png" />
   </ItemGroup>
 
 </Project>

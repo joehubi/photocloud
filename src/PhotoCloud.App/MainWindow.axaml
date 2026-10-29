@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:PhotoCloud.App"
         x:Class="PhotoCloud.App.MainWindow"
         Width="900" Height="650"
+        Icon="/Assets/photocloud.ico"
         Title="PhotoCloud">
     <Grid RowDefinitions="Auto,Auto,*" Margin="12">
         <StackPanel Grid.Row="0" Spacing="4">
