@@ -26,6 +26,7 @@ Hinweise:
 - Ist die Cloud beim Start offline, startet die App und der Server trotzdem; die Statuszeile zeigt „Cloud nicht erreichbar“.
 - Die Config wird nur beim Start gelesen. Änderungen erfordern einen Neustart.
 - Beim Schließen des Fensters wird der Timer gestoppt und der Server beendet.
+- Geloggt werden (Info): „Anwendung gestartet“ nach dem erfolgreichen Serverstart und „Anwendung wird beendet“ beim Schließen. Scheitert der Serverstart (z. B. Port belegt), gibt es einen Error-Eintrag. Ohne gefundene oder lesbare Config wird nichts geloggt, da dann kein Log-Ordner feststeht.
 
 ## Cloud-Timer (alle 30 Sekunden)
 

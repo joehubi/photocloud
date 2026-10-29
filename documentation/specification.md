@@ -125,6 +125,7 @@ Kleine GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technolog
 - Jeder Eintrag hat eine Stufe (`Info` oder `Error`), die visuell sofort erkennbar ist: eigene Spalte mit Symbol (ℹ / ⚠) und Farbe (Info neutral/grün, Error rot, Zeile ggf. rot hinterlegt). Zusätzlich lässt sich das Log nach Stufe filtern (Alle / nur Errors).
 - Die Einträge werden zusätzlich in eine Logdatei geschrieben: `logs\upload-JJJJ-MM-TT.log` neben der Anwendung, mit täglicher Rotation (jeden Tag eine neue Datei). Beim Start werden die letzten 500 Einträge aus den Logdateien in die GUI geladen, sodass frühere Uploads nach einem Neustart sichtbar sind. Logdateien werden nie automatisch gelöscht.
 - Jeder Upload-Vorgang wird pro Datei protokolliert (Erfolg als `Info`, Fehler als `Error`), unabhängig davon, ob er erfolgreich war.
+- Zusätzlich werden als `Info` geloggt: Anwendung gestartet, Anwendung beendet, Webmaske geöffnet (mit Client-IP) und Upload gestartet (mit Client-IP und Zielordner). Ordnerliste und Favicon werden nicht geloggt.
 - Fehler (NAS nicht erreichbar, Anmeldung am Share fehlgeschlagen, abgelehnte Dateien oder Geräte) werden als `Error` protokolliert, erfolgreiche Übertragungen als `Info`. Die Stufe steht auch in der Logdatei.
 
 ### Weitere Hinweise
