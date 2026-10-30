@@ -50,6 +50,15 @@ public static class SmbConnection
         public string? lpProvider;
     }
 
+    /// <summary>
+    /// Calls WNetAddConnection2 in Windows' mpr.dll (Multiple Provider Router) to connect to a network resource.
+    /// The DLL is supplied and serviced by Windows, so its file version depends on the installed Windows build and updates.
+    /// </summary>
+    /// <param name="resource">Describes the network resource to connect to.</param>
+    /// <param name="password">The password for the specified user.</param>
+    /// <param name="username">The user name used to establish the connection.</param>
+    /// <param name="flags">Connection options passed to the Windows networking API.</param>
+    /// <returns>Zero on success; otherwise, a Windows network error code.</returns>
     [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
     private static extern int WNetAddConnection2(ref NetResource resource, string password, string username, int flags);
 }
