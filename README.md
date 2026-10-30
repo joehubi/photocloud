@@ -10,7 +10,7 @@ Windows-Anwendung, mit der du Fotos vom Smartphone direkt per WLAN in feste Ordn
 - Am Smartphone öffnest du in Chrome eine Webmaske, wählst einen **Zielordner** und die **Bilder** und lädst sie hoch.
 - Der PC schreibt die Dateien per SMB (`\\Host\Share`) direkt in den gewählten Ordner auf dem NAS.
 - Es gibt keinen Login. Zugriff haben nur Geräte, deren IP in `Server.AllowedClientIps` steht.
-- Die Desktop-Oberfläche (Avalonia) zeigt die Einstellungen (nur lesen), den Upload-Log mit Filter und die Adresse für das Smartphone.
+- Die Desktop-Oberfläche (Avalonia) zeigt den Upload-Log mit Filter und ermöglicht das Bearbeiten der Einstellungen.
 - Uploads werden in `logs\upload-JJJJ-MM-TT.log` protokolliert.
 
 Die vollständige Spezifikation steht in [documentation/specification.md](documentation/specification.md).
@@ -38,9 +38,8 @@ Die App startet **nur mit einer eigenen `photocloud.config.json`**. Sie enthält
 | `Cloud-Storage` | `TargetFolders` | Feste Liste der Zielordner relativ zur Freigabe (müssen existieren) |
 | | `MaxFileSizeMb` | Maximale Dateigröße pro Bild |
 | | `AllowedExtensions` | Erlaubte Dateiendungen |
-| `Unittest` | `TargetFolder` | Ordner für den NAS-Integrationstest |
 
-Die Datei wird nur beim Start gelesen. Nach Änderungen die App neu starten.
+Die Datei wird beim Start gelesen. Änderungen im GUI werden in dieselbe JSON-Datei gespeichert und erst nach einem Neustart von PhotoCloud wirksam. Das Passwortfeld bleibt leer, um das gespeicherte Passwort nicht erneut anzuzeigen; ein leeres Feld lässt es unverändert. Zum Entfernen des Passworts das Kontrollkästchen im GUI aktivieren. Die Datei enthält das Passwort weiterhin unverschlüsselt.
 
 Alternativ kann der Pfad über die Umgebungsvariable `PHOTOCLOUD_CONFIG` angegeben werden.
 
@@ -85,7 +84,7 @@ net use \\hubercloud\hubercloud /delete
 dotnet test
 ```
 
-Der NAS-Integrationstest (`CloudUploadTests`) braucht eine gültige `photocloud.config.json` mit `Unittest.TargetFolder` und wird übersprungen, wenn Config oder NAS nicht erreichbar sind. Die Testdatei `unittest.jpg` bleibt bewusst im Testordner auf dem NAS liegen.
+Der NAS-Integrationstest (`CloudUploadTests`) braucht eine gültige `photocloud.config.json` mit den NAS-Zugangsdaten. Sein Zielordner `03_Bilder\###photocloud` ist im Testcode festgelegt, muss auf dem NAS existieren und wird übersprungen, wenn die Config fehlt, das NAS nicht erreichbar ist oder der Ordner nicht existiert. Die Testdatei `unittest.jpg` bleibt bewusst im Testordner auf dem NAS liegen.
 
 ## Projektstruktur
 

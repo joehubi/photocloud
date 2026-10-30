@@ -6,13 +6,14 @@ namespace PhotoCloud.Tests;
 
 public class CloudUploadTests
 {
+    private const string IntegrationTargetFolder = @"03_Bilder\###photocloud";
+
     [SkippableFact]
     [Trait("Category", "Integration")]
     public async Task DefaultPhoto_IsCopiedAndRemainsInCloudUnittestFolder()
     {
         var config = TestConfig.TryLoad();
         Skip.If(config is null, "photocloud.config.json nicht gefunden.");
-        Skip.If(string.IsNullOrWhiteSpace(config!.Unittest.TargetFolder), "Unittest.TargetFolder ist nicht konfiguriert.");
 
         try
         {
@@ -26,13 +27,12 @@ public class CloudUploadTests
             Skip.If(true, $"NAS nicht erreichbar: {ex.Message}");
         }
 
-        var targetFolder = config.Unittest.TargetFolder;
-        var folderPath = Path.Combine(config.CloudSettings.SharePath, targetFolder);
+        var folderPath = Path.Combine(config!.CloudSettings.SharePath, IntegrationTargetFolder);
         Skip.IfNot(Directory.Exists(folderPath), $"Testordner '{folderPath}' existiert nicht oder ist nicht erreichbar.");
 
         var storage = new CloudStorage(
             config.CloudSettings.SharePath,
-            new[] { targetFolder },
+            new[] { IntegrationTargetFolder },
             config.CloudStorage.AllowedExtensions,
             config.CloudStorage.MaxFileSizeMb);
 
@@ -40,7 +40,7 @@ public class CloudUploadTests
         SaveResult result;
         await using (var input = File.OpenRead(source))
         {
-            result = await storage.SaveAsync(targetFolder, "unittest.jpg", input);
+            result = await storage.SaveAsync(IntegrationTargetFolder, "unittest.jpg", input);
         }
 
         var targetFile = Path.Combine(folderPath, result.FileName);

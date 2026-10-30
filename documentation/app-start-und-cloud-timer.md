@@ -13,7 +13,7 @@ flowchart TD
     B -- nein --> E1[Statuszeile: Config nicht gefunden<br/>App bleibt offen, kein Server]
     B -- ja --> C{Config lesbar?}
     C -- nein --> E2[Statuszeile: Fehler beim Lesen<br/>kein Server]
-    C -- ja --> D[Einstellungen anzeigen<br/>Passwort maskiert]
+    C -- ja --> D[Einstellungen laden<br/>Passwortfeld bleibt leer]
     D --> F[Letzte 500 Logeinträge aus logs\ laden]
     F --> G[Erster Cloud-Check im Hintergrund]
     G --> H[Web-Server bauen und starten<br/>IPv4, Server.Port]
@@ -24,7 +24,8 @@ flowchart TD
 
 Hinweise:
 - Ist die Cloud beim Start offline, startet die App und der Server trotzdem; die Statuszeile zeigt „Cloud nicht erreichbar“.
-- Die Config wird nur beim Start gelesen. Änderungen erfordern einen Neustart.
+- Die Config wird beim Start gelesen. Änderungen im Einstellungen-Tab werden atomar in dieselbe JSON-Datei geschrieben und erst nach einem Neustart wirksam.
+- „Jetzt neu starten“ startet einen zweiten Prozess, der wartet, bis der bisherige Webserver beendet ist. So kollidiert der neue Prozess nicht mit dem noch belegten Server-Port.
 - Beim Schließen des Fensters wird der Timer gestoppt und der Server beendet.
 - Geloggt werden (Info): „Anwendung gestartet“ nach dem erfolgreichen Serverstart und „Anwendung wird beendet“ beim Schließen. Scheitert der Serverstart (z. B. Port belegt), gibt es einen Error-Eintrag. Ohne gefundene oder lesbare Config wird nichts geloggt, da dann kein Log-Ordner feststeht.
 

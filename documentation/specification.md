@@ -33,9 +33,6 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
     "TargetFolders": ["Bilder\\Urlaub", "Bilder\\Familie", "Bilder\\Sonstiges"],
     "MaxFileSizeMb": 100,
     "AllowedExtensions": [".jpg", ".jpeg", ".png", ".heic", ".webp"]
-  },
-  "Unittest": {
-    "TargetFolder": "03_Bilder\\###photocloud"
   }
 }
 ```
@@ -53,7 +50,6 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
   - Es wird ausschließlich in genau diese Ordner geschrieben. Es gibt keine Navigation in Unterordner und kein Durchsuchen der Cloud.
   - Die Anwendung legt keine Ordner an. Ein konfigurierter Ordner, der nicht existiert, wird als `Error` geloggt und in der Webmaske als nicht verfügbar markiert.
   - Der Client wählt den Ordner nur aus dieser Liste (z. B. per Index/Name). Beliebige Pfadangaben vom Client werden abgelehnt.
-- `Unittest.TargetFolder`: Testordner für die Unit-Tests (relativ zum Share, hier `\\hubercloud\hubercloud\03_Bilder\###photocloud`). Er wird ausschließlich von den Tests verwendet, nicht von der Webmaske, und muss manuell existieren.
 - Das Passwort liegt im Klartext in der Datei. Deshalb wird die echte Konfigurationsdatei per `.gitignore` von Git ausgeschlossen, und im Repository liegt stattdessen eine `config.example.json` ohne Geheimnisse.
 
 | Einstellung | Wert |
@@ -111,13 +107,17 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
 Hinweis: Eine Webseite kann nicht selbst die gesamte Galerie als Miniaturansicht aufbauen (Browser-Datenschutz). Die Galerieansicht mit Miniaturen liefert der System-Picker des Smartphones.
 
 ## 7a. Windows-GUI (Desktop)
-Kleine GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technologie: Avalonia UI (.NET 10, C#, MVVM).
+GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technologie: Avalonia UI (.NET 10, C#).
 
-### Bereich 1: Einstellungen (nur Anzeige, nicht editierbar)
-- Zeigt die Werte aus der JSON-Konfiguration: `Cloud-Settings.Host`, `Port`, `Share`, `User`, `Server.Port`, `Cloud-Storage.TargetFolders`, `MaxFileSizeMb`, `AllowedExtensions`, `Server.AllowedClientIps`. Der Bereich `Unittest` wird nicht angezeigt, da er nur für Tests relevant ist.
-- Das Passwort wird maskiert dargestellt (`********`).
-- Änderungen erfolgen ausschließlich in der JSON-Datei; die Anwendung liest sie nur beim Start ein (kein Neu-Laden zur Laufzeit; nach Änderungen die Anwendung neu starten).
-- Zusätzlich sinnvoll: Pfad der Konfigurationsdatei, URL des Webservers (z. B. `http://192.168.178.20:5000`), Status der NAS-Verbindung (verbunden/nicht erreichbar).
+### Bereich 1: Einstellungen
+- Bearbeitbar sind NAS-Host und Freigabe, Benutzername und Passwort, `Server.Port`, `Server.AllowedClientIps`, `Cloud-Storage.TargetFolders`, `MaxFileSizeMb` und `AllowedExtensions`.
+- Listen werden zeilenweise eingegeben. Die GUI prüft den Server-Port, IPv4-Adressen, relative Zielpfade, Dateiendungen und eine positive maximale Dateigröße.
+- Die Zielordner müssen auf der Freigabe bereits existieren; die Anwendung legt keine Ordner an. Beim Speichern wird der relative Pfad geprüft; Erreichbarkeit und Existenz werden beim Upload geprüft.
+- `Cloud-Settings.Port` wird angezeigt, aber nicht bearbeitet: Der Wert wird derzeit nicht angewendet; SMB verwendet den Standardport 445.
+- Ein neues Passwort wird maskiert eingegeben. Das Feld bleibt beim Öffnen leer: Ohne neue Eingabe bleibt das gespeicherte Passwort erhalten; zum Entfernen gibt es ein eigenes Kontrollkästchen. Das Passwort bleibt in `photocloud.config.json` Klartext und wird von PhotoCloud nicht protokolliert.
+- Die GUI speichert in dieselbe JSON-Datei. Sie schreibt zunächst eine temporäre Datei und ersetzt danach die Konfigurationsdatei, damit ein abgebrochener Schreibvorgang die bestehende Konfiguration nicht teilweise überschreibt.
+- Nach dem Speichern bleiben die aktuell laufenden Dienste bei ihren bisherigen Einstellungen. „Jetzt neu starten“ startet PhotoCloud mit der gespeicherten Konfiguration neu; der neue Prozess wartet, bis der bisherige Server beendet ist. Laufende Uploads können dadurch abbrechen.
+- Der Pfad der Konfigurationsdatei sowie der SMB-Port-Hinweis werden angezeigt.
 
 ### Bereich 2: Logeinträge (Uploads)
 - Tabelle/Liste mit einem Eintrag pro Ereignis (übertragenes Bild, abgelehnter Zugriff, Fehler): Stufe, Zeitstempel, Dateiname, Zielordner (aus `Cloud-Storage.TargetFolders`), Dateigröße, Ergebnis/Meldung.
@@ -130,7 +130,7 @@ Kleine GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technolog
 
 ### Weitere Hinweise
 - Kein Tray-Icon: Die GUI wird normal in der Taskleiste minimiert.
-- Kein Start/Stopp-Button: Der Webserver läuft, solange die Anwendung läuft; zum Beenden die Anwendung schließen.
+- Der Webserver läuft, solange die Anwendung läuft; zum Beenden die Anwendung schließen.
 
 ## 7b. Projektstruktur und Unit-Tests
 Solution `PhotoCloud` mit vier Projekten:
@@ -143,12 +143,12 @@ Solution `PhotoCloud` mit vier Projekten:
 - Framework: xUnit (.NET 10), eigenes Projekt `PhotoCloud.Tests`. Der Integrationstest ist in VS Code im Test Explorer (C# Dev Kit) ausführbar, alternativ per `dotnet test`.
 - Die Logik für den Speicherzugriff liegt in `PhotoCloud.Core`, damit sie ohne Avalonia und Kestrel testbar ist.
 - Testdaten: das Standardfoto `tests\PhotoCloud.Tests\TestData\unittest.jpg` (wird beim Build ins Testausgabeverzeichnis kopiert).
-- Konfiguration für die Tests: `photocloud.config.json` im Repo-Root (von Git ausgeschlossen, Vorlage: `config.example.json`) oder Pfad per Umgebungsvariable `PHOTOCLOUD_CONFIG`. Fehlt sie oder ist das NAS nicht erreichbar, wird der Integrationstest übersprungen.
+- Konfiguration für die Tests: `photocloud.config.json` im Repo-Root (von Git ausgeschlossen, Vorlage: `config.example.json`) oder Pfad per Umgebungsvariable `PHOTOCLOUD_CONFIG`. Sie enthält nur die NAS- und Upload-Einstellungen. Der Integrationstest-Zielordner `03_Bilder\###photocloud` ist im Testcode festgelegt. Fehlt die Konfiguration, ist das NAS nicht erreichbar oder der Ordner nicht vorhanden, wird der Integrationstest übersprungen.
 - Ausführen: `dotnet test tests\PhotoCloud.Tests` oder im VS-Code-Test-Explorer.
 
 ### Test (erste Ausbaustufe)
 - **Standardfoto auf die Cloud schieben** (Integrationstest gegen die echte WD My Cloud)
-  - Kopiert `unittest.jpg` über den Storage-Dienst in den Ordner `Unittest.TargetFolder` (JSON-Bereich `Unittest`, relativ zum Share, z. B. `03_Bilder\###photocloud` = `\\hubercloud\hubercloud\03_Bilder\###photocloud`). Der Ordner gehört nicht zu `Cloud-Storage.TargetFolders` und muss vorab manuell existieren, da die Anwendung keine Ordner anlegt.
+  - Kopiert `unittest.jpg` über den Storage-Dienst in den im Testcode festgelegten Ordner `03_Bilder\###photocloud` (relativ zum Share, z. B. `\\hubercloud\hubercloud\03_Bilder\###photocloud`). Der Ordner gehört nicht zu `Cloud-Storage.TargetFolders` und muss vorab manuell existieren, da die Anwendung keine Ordner anlegt.
   - Prüft, dass die Datei auf dem Share existiert und byte-identisch ist (Größe/Hash). Die Testdatei bleibt im NAS-Testordner erhalten; bei erneutem Testlauf wird wegen der Namenskollision eine nummerierte Kopie angelegt.
   - Benötigt die echte Konfiguration (JSON); ist sie nicht vorhanden oder das NAS nicht erreichbar, wird der Test übersprungen. Kennzeichnung: `Trait("Category", "Integration")`.
 2. **Beispiel-Logfile schreiben**
@@ -163,4 +163,5 @@ Solution `PhotoCloud` mit vier Projekten:
 - Ein Foto vom Smartphone landet per WLAN im gewählten NAS-Ordner.
 - Zugriff ist nur von Geräten in `Server.AllowedClientIps` möglich.
 - Pfade außerhalb der konfigurierten Zielordner sind nicht erreichbar; es werden keine Ordner angelegt.
-- Die GUI zeigt die Konfiguration schreibgeschützt (Passwort maskiert) und listet jeden Upload mit Zeitstempel, Dateiname und Zielordner.
+- Die GUI erlaubt das Bearbeiten und Speichern der Anwendungseinstellungen; gespeicherte Änderungen werden nach einem Neustart wirksam. Das Passwort bleibt maskiert und wird nicht protokolliert.
+- Die GUI listet jeden Upload mit Zeitstempel, Dateiname und Zielordner.

@@ -41,8 +41,53 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Settings">
-                <TextBox Name="SettingsBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" Margin="0,8,0,0"/>
+            <TabItem Header="Einstellungen">
+                <ScrollViewer Margin="0,8,0,0">
+                    <StackPanel Name="SettingsPanel" Spacing="8" IsEnabled="False">
+                        <TextBlock Name="SettingsConfigPath" TextWrapping="Wrap"/>
+                        <TextBlock Text="Gespeicherte Änderungen werden nach einem Neustart von PhotoCloud wirksam." TextWrapping="Wrap"/>
+
+                        <TextBlock Text="Cloud / NAS" FontSize="18" FontWeight="Bold" Margin="0,8,0,0"/>
+                        <TextBlock Text="Host"/>
+                        <TextBox Name="CloudHostBox"/>
+                        <TextBlock Text="Freigabe (Share)"/>
+                        <TextBox Name="CloudShareBox"/>
+                        <TextBlock Text="Benutzername (optional, wenn Windows bereits Zugriff hat)"/>
+                        <TextBox Name="CloudUserBox"/>
+                        <TextBlock Text="Passwort"/>
+                        <TextBox Name="CloudPasswordBox" PasswordChar="*"/>
+                        <CheckBox Name="ClearCloudPasswordCheckBox" Content="Gespeichertes Passwort löschen"/>
+                        <TextBlock Text="Ein leeres Passwortfeld lässt das gespeicherte Passwort unverändert. Zum Entfernen das Kontrollkästchen aktivieren."
+                                   TextWrapping="Wrap"/>
+                        <TextBlock Name="CloudPortNotice" TextWrapping="Wrap"/>
+                        <TextBlock Text="Das Passwort wird weiterhin unverschlüsselt in der JSON-Datei gespeichert. Es wird in der Oberfläche maskiert und nicht protokolliert."
+                                   TextWrapping="Wrap"/>
+
+                        <TextBlock Text="Webserver" FontSize="18" FontWeight="Bold" Margin="0,8,0,0"/>
+                        <TextBlock Text="Server-Port"/>
+                        <TextBox Name="ServerPortBox"/>
+                        <TextBlock Text="Erlaubte Client-IPv4-Adressen (eine pro Zeile)"/>
+                        <TextBox Name="AllowedClientIpsBox" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="84"/>
+
+                        <TextBlock Text="Cloud-Speicher" FontSize="18" FontWeight="Bold" Margin="0,8,0,0"/>
+                        <TextBlock Text="Zielordner relativ zur Freigabe (einer pro Zeile; Ordner müssen bereits existieren)"/>
+                        <TextBox Name="TargetFoldersBox" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="84"/>
+                        <TextBlock Text="Beim Speichern wird der Pfad geprüft. Ob Ordner und NAS erreichbar sind, zeigt sich beim Upload."
+                                   TextWrapping="Wrap"/>
+                        <TextBlock Text="Maximale Bildgröße in MB"/>
+                        <TextBox Name="MaxFileSizeBox"/>
+                        <TextBlock Text="Erlaubte Dateiendungen (eine pro Zeile, z. B. .jpg)"/>
+                        <TextBox Name="AllowedExtensionsBox" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="84"/>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                            <Button Name="SaveSettingsButton" Content="Einstellungen speichern"/>
+                            <Button Name="RestartSettingsButton" Content="Jetzt neu starten" IsVisible="False"/>
+                        </StackPanel>
+                        <TextBlock Text="Ein Neustart beendet den Webserver; laufende Uploads können abbrechen."
+                                   TextWrapping="Wrap"/>
+                        <TextBlock Name="SettingsMessage" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </Grid>

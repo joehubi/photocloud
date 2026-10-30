@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -25,15 +28,40 @@ public partial class MainWindow : Window
 
     private readonly List<LogEntry> _entries = new();
     private PhotoCloudConfig? _config;
+    private PhotoCloudConfig? _savedConfig;
+    private string? _configPath;
     private UploadLogWriter? _logWriter;
     private WebApplication? _server;
     private DispatcherTimer? _nasTimer;
+    private bool _loadingSettings;
+    private bool _settingsDirty;
+    private bool _restartRequired;
 
     /// <summary>Verbindet Filter, Start- und Schließen-Ereignisse; die eigentliche Initialisierung folgt in StartAsync.</summary>
     public MainWindow()
     {
         InitializeComponent();
         LevelFilter.SelectionChanged += (_, _) => RefreshList();
+        SaveSettingsButton.Click += (_, _) => TrySaveSettings();
+        RestartSettingsButton.Click += (_, _) => RestartApplication();
+        foreach (var input in new[]
+        {
+            CloudHostBox,
+            CloudShareBox,
+            CloudUserBox,
+            CloudPasswordBox,
+            ServerPortBox,
+            AllowedClientIpsBox,
+            TargetFoldersBox,
+            MaxFileSizeBox,
+            AllowedExtensionsBox,
+        })
+        {
+            input.TextChanged += (_, _) => MarkSettingsChanged();
+        }
+
+        ClearCloudPasswordCheckBox.IsCheckedChanged += (_, _) =>
+            SetPasswordClearing(ClearCloudPasswordCheckBox.IsChecked == true);
         Opened += async (_, _) => await StartAsync();
         Closing += async (_, _) =>
         {
@@ -58,7 +86,9 @@ public partial class MainWindow : Window
 
         try
         {
-            _config = PhotoCloudConfig.Load(configPath);
+            _configPath = Path.GetFullPath(configPath);
+            _config = PhotoCloudConfig.Load(_configPath);
+            _savedConfig = _config;
         }
         catch (Exception ex)
         {
@@ -66,8 +96,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        SettingsBox.Text = FormatSettings(_config, configPath);
-        _logWriter = new UploadLogWriter(Path.Combine(Path.GetDirectoryName(configPath)!, "logs"));
+        PopulateSettings(_config, _configPath);
+        _logWriter = new UploadLogWriter(Path.Combine(Path.GetDirectoryName(_configPath)!, "logs"));
         _entries.AddRange(UploadLogReader.ReadLast(_logWriter.LogDirectory, InitialLogEntries));
         RefreshList();
 
@@ -160,42 +190,204 @@ public partial class MainWindow : Window
         return new LogRow(isError ? "✖" : "ℹ", isError ? Brushes.Firebrick : Brushes.SteelBlue, text, e.Level);
     }
 
-    /// <summary>Formatiert die Config schreibgeschützt für die Anzeige; das Passwort bleibt maskiert.</summary>
-    private static string FormatSettings(PhotoCloudConfig c, string path)
+    private void PopulateSettings(PhotoCloudConfig config, string path)
     {
-        var cloud = c.CloudSettings;
-        var lines = new List<string>
-        {
-            $"Konfigurationsdatei: {path}",
-            "",
-            "[Cloud-Settings]",
-            $"  Host:              {cloud.Host}",
-            $"  Port:              {cloud.Port}",
-            $"  Share:             {cloud.Share}",
-            $"  User:              {cloud.User}",
-            "  Password:          ********",
-            "",
-            "[Server]",
-            $"  Port:              {c.Server.Port}",
-            $"  AllowedClientIps:  {FormatList(c.Server.AllowedClientIps)}",
-            "",
-            "[Cloud-Storage]",
-            $"  TargetFolders:     {FormatList(c.CloudStorage.TargetFolders)}",
-            $"  MaxFileSizeMb:     {c.CloudStorage.MaxFileSizeMb}",
-            $"  AllowedExtensions: {FormatList(c.CloudStorage.AllowedExtensions)}",
-            "",
-            "[Unittest]",
-            $"  TargetFolder:      {c.Unittest.TargetFolder}",
-        };
-        return string.Join(Environment.NewLine, lines);
+        _loadingSettings = true;
+        SettingsConfigPath.Text = $"Konfigurationsdatei: {path}";
+        CloudHostBox.Text = config.CloudSettings.Host;
+        CloudShareBox.Text = config.CloudSettings.Share;
+        CloudUserBox.Text = config.CloudSettings.User;
+        CloudPasswordBox.Text = "";
+        ClearCloudPasswordCheckBox.IsChecked = false;
+        CloudPasswordBox.IsEnabled = true;
+        CloudPortNotice.Text =
+            $"Cloud-Settings.Port in der Datei: {config.CloudSettings.Port}. Dieser Wert wird derzeit nicht angewendet; SMB verwendet den Standardport 445.";
+        ServerPortBox.Text = config.Server.Port.ToString(CultureInfo.InvariantCulture);
+        AllowedClientIpsBox.Text = string.Join(Environment.NewLine, config.Server.AllowedClientIps);
+        TargetFoldersBox.Text = string.Join(Environment.NewLine, config.CloudStorage.TargetFolders);
+        MaxFileSizeBox.Text = config.CloudStorage.MaxFileSizeMb.ToString(CultureInfo.InvariantCulture);
+        AllowedExtensionsBox.Text = string.Join(Environment.NewLine, config.CloudStorage.AllowedExtensions);
+        SettingsPanel.IsEnabled = true;
+        _settingsDirty = false;
+        _restartRequired = false;
+        RestartSettingsButton.IsVisible = false;
+        SettingsMessage.Text = "Eine Zeile pro IP-Adresse, Zielordner oder Dateiendung.";
+        SettingsMessage.Foreground = Brushes.DimGray;
+        _loadingSettings = false;
     }
 
-    /// <summary>Stellt jeden Listeneintrag in eine eigene Zeile, eingerückt unter dem Attributnamen.</summary>
-    private static string FormatList(IEnumerable<string> items)
+    private void MarkSettingsChanged()
     {
-        var list = items.ToList();
-        return list.Count == 0
-            ? "-"
-            : string.Concat(list.Select(i => Environment.NewLine + "    - " + i));
+        if (_loadingSettings)
+        {
+            return;
+        }
+
+        _settingsDirty = true;
+        if (_settingsDirty && _restartRequired)
+        {
+            SetSettingsMessage(
+                "Es gibt ungespeicherte Änderungen. Bereits gespeicherte Einstellungen erfordern weiterhin einen Neustart.",
+                Brushes.DarkOrange);
+        }
+        else if (_settingsDirty)
+        {
+            SetSettingsMessage("Es gibt ungespeicherte Änderungen.", Brushes.DarkOrange);
+        }
+    }
+
+    private void SetPasswordClearing(bool clear)
+    {
+        CloudPasswordBox.IsEnabled = !clear;
+        if (clear)
+        {
+            CloudPasswordBox.Text = "";
+        }
+
+        MarkSettingsChanged();
+    }
+
+    private bool TrySaveSettings()
+    {
+        if (_config is null || _configPath is null)
+        {
+            SetSettingsMessage("Es ist keine geladene Konfiguration zum Speichern vorhanden.", Brushes.Firebrick);
+            return false;
+        }
+
+        var inputErrors = new List<string>();
+        var serverPortValid = TryParseInteger(ServerPortBox.Text, "Server-Port", inputErrors, out var serverPort);
+        var maxFileSizeValid = TryParseInteger(MaxFileSizeBox.Text, "Maximale Bildgröße", inputErrors, out var maxFileSizeMb);
+        if (!serverPortValid || !maxFileSizeValid)
+        {
+            SetSettingsMessage(string.Join(Environment.NewLine, inputErrors), Brushes.Firebrick);
+            return false;
+        }
+
+        var config = new PhotoCloudConfig
+        {
+            CloudSettings = new CloudSettings
+            {
+                Host = CloudHostBox.Text?.Trim() ?? "",
+                Port = _savedConfig!.CloudSettings.Port,
+                Share = CloudShareBox.Text?.Trim() ?? "",
+                User = CloudUserBox.Text?.Trim() ?? "",
+                Password = ClearCloudPasswordCheckBox.IsChecked == true
+                    ? ""
+                    : string.IsNullOrEmpty(CloudPasswordBox.Text)
+                        ? _savedConfig!.CloudSettings.Password
+                        : CloudPasswordBox.Text,
+            },
+            Server = new ServerSettings
+            {
+                Port = serverPort,
+                AllowedClientIps = ReadLines(AllowedClientIpsBox.Text),
+            },
+            CloudStorage = new CloudStorageSettings
+            {
+                TargetFolders = ReadLines(TargetFoldersBox.Text),
+                MaxFileSizeMb = maxFileSizeMb,
+                AllowedExtensions = ReadLines(AllowedExtensionsBox.Text),
+            },
+        };
+
+        var validationErrors = config.Validate();
+        if (validationErrors.Count > 0)
+        {
+            SetSettingsMessage(
+                "Bitte korrigiere folgende Einstellungen:" + Environment.NewLine + string.Join(Environment.NewLine, validationErrors),
+                Brushes.Firebrick);
+            return false;
+        }
+
+        try
+        {
+            PhotoCloudConfig.Save(_configPath, config);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException)
+        {
+            SetSettingsMessage($"Konfiguration konnte nicht gespeichert werden: {ex.Message}", Brushes.Firebrick);
+            return false;
+        }
+
+        _savedConfig = config;
+        _settingsDirty = false;
+        _restartRequired = !RuntimeSettingsEqual(_config, config);
+        RestartSettingsButton.IsVisible = _restartRequired;
+        SetSettingsMessage(_restartRequired
+                ? "Gespeichert. Die laufende App verwendet noch die alten Werte; starte PhotoCloud neu, um die Änderungen anzuwenden."
+                : "Gespeichert. Die Einstellungen entsprechen bereits der laufenden App; ein Neustart ist nicht erforderlich.",
+            Brushes.DarkGreen);
+        return true;
+    }
+
+    private static bool RuntimeSettingsEqual(PhotoCloudConfig current, PhotoCloudConfig saved) =>
+        string.Equals(current.CloudSettings.Host, saved.CloudSettings.Host, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(current.CloudSettings.Share, saved.CloudSettings.Share, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(current.CloudSettings.User, saved.CloudSettings.User, StringComparison.Ordinal)
+        && string.Equals(current.CloudSettings.Password, saved.CloudSettings.Password, StringComparison.Ordinal)
+        && current.Server.Port == saved.Server.Port
+        && current.Server.AllowedClientIps.SequenceEqual(saved.Server.AllowedClientIps, StringComparer.OrdinalIgnoreCase)
+        && current.CloudStorage.TargetFolders.SequenceEqual(saved.CloudStorage.TargetFolders, StringComparer.OrdinalIgnoreCase)
+        && current.CloudStorage.MaxFileSizeMb == saved.CloudStorage.MaxFileSizeMb
+        && current.CloudStorage.AllowedExtensions.SequenceEqual(saved.CloudStorage.AllowedExtensions, StringComparer.OrdinalIgnoreCase);
+
+    private static bool TryParseInteger(string? text, string label, ICollection<string> errors, out int value)
+    {
+        if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out value))
+        {
+            return true;
+        }
+
+        errors.Add($"{label} muss eine ganze Zahl sein.");
+        return false;
+    }
+
+    private static List<string> ReadLines(string? text) =>
+        (text ?? "").Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+    private void RestartApplication()
+    {
+        if (!TrySaveSettings() || !_restartRequired)
+        {
+            return;
+        }
+
+        try
+        {
+            var processPath = Environment.ProcessPath
+                ?? throw new InvalidOperationException("Der Pfad der laufenden Anwendung konnte nicht ermittelt werden.");
+            var startInfo = new ProcessStartInfo(processPath)
+            {
+                UseShellExecute = false,
+                WorkingDirectory = Environment.CurrentDirectory,
+            };
+
+            if (string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase))
+            {
+                startInfo.ArgumentList.Add(typeof(Program).Assembly.Location);
+            }
+
+            foreach (var argument in Program.StartupArguments)
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+
+            startInfo.ArgumentList.Add(Program.RestartWaitArgument);
+            startInfo.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+            using var restartedProcess = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Der neue PhotoCloud-Prozess konnte nicht gestartet werden.");
+            Close();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException or ArgumentException)
+        {
+            SetSettingsMessage($"Neustart konnte nicht gestartet werden: {ex.Message}", Brushes.Firebrick);
+        }
+    }
+
+    private void SetSettingsMessage(string message, IBrush foreground)
+    {
+        SettingsMessage.Text = message;
+        SettingsMessage.Foreground = foreground;
     }
 }
