@@ -41,6 +41,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        var version = GetType().Assembly.GetName().Version
+            ?? throw new InvalidOperationException("Die Assembly-Version ist nicht verfügbar.");
+        Title = $"PhotoCloud {version.ToString(3)}";
+
         LevelFilter.SelectionChanged += (_, _) => RefreshList();
         SaveSettingsButton.Click += (_, _) => TrySaveSettings();
         RestartSettingsButton.Click += (_, _) => RestartApplication();
