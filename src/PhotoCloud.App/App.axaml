@@ -4,6 +4,19 @@
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
+    <TrayIcon.Icons>
+        <TrayIcons>
+            <TrayIcon Icon="/Assets/photocloud.ico" ToolTipText="PhotoCloud" Clicked="ShowWindow">
+                <TrayIcon.Menu>
+                    <NativeMenu>
+                        <NativeMenuItem Header="PhotoCloud öffnen" Click="ShowWindow" />
+                        <NativeMenuItem Header="Beenden" Click="ExitApplication" />
+                    </NativeMenu>
+                </TrayIcon.Menu>
+            </TrayIcon>
+        </TrayIcons>
+    </TrayIcon.Icons>
+
     <Application.Styles>
         <FluentTheme />
     </Application.Styles>

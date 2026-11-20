@@ -8,6 +8,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -33,11 +34,12 @@ public partial class MainWindow : Window
     private UploadLogWriter? _logWriter;
     private WebApplication? _server;
     private DispatcherTimer? _nasTimer;
+    private Task _startupTask = Task.CompletedTask;
     private bool _loadingSettings;
     private bool _settingsDirty;
     private bool _restartRequired;
 
-    /// <summary>Verbindet Filter, Start- und Schließen-Ereignisse; die eigentliche Initialisierung folgt in StartAsync.</summary>
+    /// <summary>Verbindet Filter und Fensterereignisse.</summary>
     public MainWindow()
     {
         InitializeComponent();
@@ -47,7 +49,7 @@ public partial class MainWindow : Window
 
         LevelFilter.SelectionChanged += (_, _) => RefreshList();
         SaveSettingsButton.Click += (_, _) => TrySaveSettings();
-        RestartSettingsButton.Click += (_, _) => RestartApplication();
+        RestartSettingsButton.Click += async (_, _) => await RestartApplicationAsync();
         foreach (var input in new[]
         {
             CloudHostBox,
@@ -66,17 +68,50 @@ public partial class MainWindow : Window
 
         ClearCloudPasswordCheckBox.IsCheckedChanged += (_, _) =>
             SetPasswordClearing(ClearCloudPasswordCheckBox.IsChecked == true);
-        Opened += async (_, _) => await StartAsync();
-        Closing += async (_, _) =>
+        Closing += (_, e) =>
         {
-            _nasTimer?.Stop();
-            if (_server is not null)
+            if (e.CloseReason is not (WindowCloseReason.ApplicationShutdown or WindowCloseReason.OSShutdown))
             {
-                _logWriter?.Write(new LogEntry(DateTime.Now, LogLevel.Info, "", "", 0, "Anwendung wird beendet."));
-                await _server.StopAsync();
+                e.Cancel = true;
+                Hide();
+            }
+        };
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property == WindowStateProperty && WindowState == WindowState.Minimized)
+            {
+                Hide();
             }
         };
     }
+
+    internal void Start() => _startupTask = StartWithErrorReportingAsync();
+
+    private async Task StartWithErrorReportingAsync()
+    {
+        try
+        {
+            await StartAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"✖ Anwendung konnte nicht gestartet werden: {ex.Message}";
+        }
+    }
+
+    internal async Task StopAsync()
+    {
+        await _startupTask;
+        _nasTimer?.Stop();
+        if (_server is not null)
+        {
+            _logWriter?.Write(new LogEntry(DateTime.Now, LogLevel.Info, "", "", 0, "Anwendung wird beendet."));
+            await _server.StopAsync();
+        }
+    }
+
+    internal void ShowShutdownError(string message) =>
+        StatusText.Text = $"✖ Anwendung konnte nicht beendet werden: {message}";
 
     /// <summary>Einmaliger Start: Config und Log laden, Cloud prüfen, Web-Server starten, Cloud-Timer anlegen.</summary>
     private async Task StartAsync()
@@ -350,7 +385,7 @@ public partial class MainWindow : Window
     private static List<string> ReadLines(string? text) =>
         (text ?? "").Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
-    private void RestartApplication()
+    private async Task RestartApplicationAsync()
     {
         if (!TrySaveSettings() || !_restartRequired)
         {
@@ -381,7 +416,16 @@ public partial class MainWindow : Window
             startInfo.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
             using var restartedProcess = Process.Start(startInfo)
                 ?? throw new InvalidOperationException("Der neue PhotoCloud-Prozess konnte nicht gestartet werden.");
-            Close();
+            if (Application.Current is not App app)
+            {
+                restartedProcess.Kill();
+                throw new InvalidOperationException("Die Anwendung konnte nicht beendet werden.");
+            }
+
+            if (!await app.ShutdownAsync())
+            {
+                restartedProcess.Kill();
+            }
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or IOException or ArgumentException)
         {

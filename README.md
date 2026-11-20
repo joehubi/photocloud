@@ -66,6 +66,8 @@ dotnet run --project src\PhotoCloud.App
 
 Die Statuszeile der App zeigt die Adresse für das Smartphone, z. B. `http://192.168.0.17:5000`. Diese Adresse in Chrome am Smartphone öffnen. Am PC selbst funktioniert `http://127.0.0.1:5000`.
 
+PhotoCloud startet im Hintergrund. Ein Klick auf das PhotoCloud-Symbol im Windows-Infobereich öffnet die Oberfläche; alternativ im Kontextmenü „PhotoCloud öffnen“ wählen. Schließen oder Minimieren blendet das Fenster wieder aus, der Server läuft weiter. Über „Beenden“ im Kontextmenü wird die Anwendung einschließlich Webserver beendet. Falls das Symbol nicht sichtbar ist, die ausgeblendeten Symbole im Infobereich öffnen.
+
 Ist das NAS beim Start offline, startet die App trotzdem und zeigt „Cloud nicht erreichbar“.
 
 ### Fehlermeldung „SMB-Verbindung mit anderen Zugangsdaten“ (Windows-Fehler 1219)

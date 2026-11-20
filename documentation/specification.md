@@ -54,7 +54,7 @@ Cloud-Zugang, Zielordner, Dateilimits und erlaubte Geräte werden in einer JSON-
 
 | Einstellung | Wert |
 |---|---|
-| Betriebsart | Desktop-Anwendung mit GUI (Kestrel läuft darin eingebettet). Start manuell, kein Autostart. Kein Windows-Dienst, da Dienste keine GUI anzeigen können. |
+| Betriebsart | Desktop-Anwendung im Hintergrund mit GUI über das Tray-Symbol (Kestrel läuft darin eingebettet). Start manuell, kein Autostart. Kein Windows-Dienst. |
 | Port | Konfigurierbar über `Server.Port` in der JSON (Standard: `5000`) |
 | Zugriff | Nur Heim-WLAN (kein Port-Forwarding im Router) |
 | HTTPS | Nein, HTTP im Heimnetz. Damit entfallen PWA-Installation und Web Share Target (siehe „Kann“-Liste, falls später gewünscht). |
@@ -129,8 +129,8 @@ GUI auf dem Windows-PC, die den eingebetteten Webserver hostet. Technologie: Ava
 - Fehler (NAS nicht erreichbar, Anmeldung am Share fehlgeschlagen, abgelehnte Dateien oder Geräte) werden als `Error` protokolliert, erfolgreiche Übertragungen als `Info`. Die Stufe steht auch in der Logdatei.
 
 ### Weitere Hinweise
-- Kein Tray-Icon: Die GUI wird normal in der Taskleiste minimiert.
-- Der Webserver läuft, solange die Anwendung läuft; zum Beenden die Anwendung schließen.
+- Die App startet im Hintergrund. Ein Klick auf das Tray-Symbol oder „PhotoCloud öffnen“ im Kontextmenü zeigt die GUI.
+- Schließen oder Minimieren blendet die GUI aus; der Webserver läuft weiter. „Beenden“ im Tray-Menü beendet die Anwendung und den Webserver.
 
 ## 7b. Projektstruktur und Unit-Tests
 Solution `PhotoCloud` mit vier Projekten:

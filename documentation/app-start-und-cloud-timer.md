@@ -5,11 +5,11 @@ Quelle: `src\PhotoCloud.App\MainWindow.axaml.cs`.
 
 ## App-Start
 
-`StartAsync` läuft **einmal**, sobald das Fenster geöffnet wird (`Opened`-Event).
+`StartAsync` läuft **einmal** beim Start der Anwendung, unabhängig davon, ob das Fenster sichtbar ist.
 
 ```mermaid
 flowchart TD
-    A[Fenster geöffnet] --> B{photocloud.config.json gefunden?}
+    A[App startet im Hintergrund] --> B{photocloud.config.json gefunden?}
     B -- nein --> E1[Statuszeile: Config nicht gefunden<br/>App bleibt offen, kein Server]
     B -- ja --> C{Config lesbar?}
     C -- nein --> E2[Statuszeile: Fehler beim Lesen<br/>kein Server]
@@ -26,8 +26,8 @@ Hinweise:
 - Ist die Cloud beim Start offline, startet die App und der Server trotzdem; die Statuszeile zeigt „Cloud nicht erreichbar“.
 - Die Config wird beim Start gelesen. Änderungen im Einstellungen-Tab werden atomar in dieselbe JSON-Datei geschrieben und erst nach einem Neustart wirksam.
 - „Jetzt neu starten“ startet einen zweiten Prozess, der wartet, bis der bisherige Webserver beendet ist. So kollidiert der neue Prozess nicht mit dem noch belegten Server-Port.
-- Beim Schließen des Fensters wird der Timer gestoppt und der Server beendet.
-- Geloggt werden (Info): „Anwendung gestartet“ nach dem erfolgreichen Serverstart und „Anwendung wird beendet“ beim Schließen. Scheitert der Serverstart (z. B. Port belegt), gibt es einen Error-Eintrag. Ohne gefundene oder lesbare Config wird nichts geloggt, da dann kein Log-Ordner feststeht.
+- Das Tray-Symbol öffnet das Fenster. Schließen oder Minimieren blendet es aus; Timer und Server laufen weiter. „Beenden“ im Tray-Menü stoppt den Timer und den Server.
+- Geloggt werden (Info): „Anwendung gestartet“ nach dem erfolgreichen Serverstart und „Anwendung wird beendet“ beim Beenden. Scheitert der Serverstart (z. B. Port belegt), gibt es einen Error-Eintrag. Ohne gefundene oder lesbare Config wird nichts geloggt, da dann kein Log-Ordner feststeht.
 
 ## Cloud-Timer (alle 30 Sekunden)
 
