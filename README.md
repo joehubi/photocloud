@@ -58,6 +58,8 @@ Alternativ kann der Pfad über die Umgebungsvariable `PHOTOCLOUD_CONFIG` angegeb
 
 **In VS Code:** Run-Konfiguration **„PhotoCloud.App bauen und starten“** (F5). Sie baut die App und startet sie.
 
+Die Run-Konfiguration **„Alle lokalen Builds löschen“** entfernt die `bin`- und `obj`-Ordner aller Projekte, einschließlich Debug- und Release-Builds. Der nächste Build stellt die benötigten Abhängigkeiten wieder her.
+
 **Per Kommandozeile:**
 
 ```powershell

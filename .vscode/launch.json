@@ -17,6 +17,13 @@
       "request": "launch",
       "command": "net.exe use \\\\hubercloud\\hubercloud /delete",
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Alle lokalen Builds löschen",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${workspaceFolder}\\.vscode\\clean-builds.ps1\"",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
